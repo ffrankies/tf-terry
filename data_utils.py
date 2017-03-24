@@ -217,6 +217,13 @@ def create_sentence_dataset(vocab_size=8000):
     log.info("Found %d unique words." % len(word_freq.items()))
 
     vocabulary = word_freq.most_common(vocab_size - 1)
+
+    log.info("Calculating percent of words captured...")
+    total = 0
+    for word in vocabulary:
+        total += word_freq.freq(word[0])
+    log.info("Percent of total words captured: " % total * 100)
+
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(unknown)
     word_to_index = dict((word, index)
@@ -287,6 +294,13 @@ def create_paragraph_dataset(vocab_size=8000):
     log.info("Found %d unique words." % len(word_freq.items()))
 
     vocabulary = word_freq.most_common(vocab_size - 1)
+
+    log.info("Calculating percent of words captured...")
+    total = 0
+    for word in vocabulary:
+        total += word_freq.freq(word[0])
+    log.info("Percent of total words captured: " % total * 100)
+
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(unknown)
     word_to_index = dict((word, index)
@@ -355,6 +369,15 @@ def create_story_dataset(vocab_size=8000):
     log.info("Found %d unique words." % len(word_freq.items()))
 
     vocabulary = word_freq.most_common(vocab_size - 1)
+
+    log.info("Calculating percent of words captured...")
+    total = 0
+    
+    for word in vocabulary:
+        total += word_freq.freq(word[0])
+
+    log.info("Percent of total words captured: %f" % total * 100)
+
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(unknown)
     word_to_index = dict((word, index)
