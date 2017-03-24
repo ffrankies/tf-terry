@@ -27,7 +27,7 @@ Date: 23 March, 2017
 # Dataset source: https://www.kaggle.com/reddit/reddit-comments-may-2015
 #
 # Author: Frank Derry Wanye
-# Date: 23 March 2017
+# Date: 24 March 2017
 ###############################################################################
 
 # Specify documentation format
@@ -72,19 +72,15 @@ class GruRNN(object):
     corresponding to the index with the highest probability.
 
     :author: Frank Wanye
-    :date: 19 Mar 2017
+    :date: 24 Mar 2017
     """
 
-    def __init__(self, voc_size=8000, hid_size=100, trunc=4, model=None):
+    def __init__(self, hid_size=100, trunc=4, model=None,
+                 dataset="reladred.pkl"):
         """
         Initializes the Vanilla RNN with the provided vocabulary_size,
         hidden layer size, and bptt_truncate. Also initializes the functions
         used in this RNN.
-
-        :type vocabulary_size: int
-        :param vocabulary_size: the size of the RNN's vocabulary. Determines
-                                the number of input and output neurons in the
-                                network. Default: 8000
 
         :type hidden_size: int
         :param hidden_size: the number of hidden layer neurons in the network.
@@ -102,6 +98,9 @@ class GruRNN(object):
         :type model: string
         :param model: the name of the saved model that contains all the RNN
                       info.
+
+        :type dataset: string
+        :param dataset: the pickled file containing the training data.
         """
 
         self.log = logging.getLogger("TEST.GRU")
@@ -115,10 +114,10 @@ class GruRNN(object):
         self.story_start = "STORY_START"
         self.story_end = "STORY_END"
 
+        self.load_data(dataset)
+
         if model is None:
             self.log.info("Initializing RNN parameters and functions...")
-
-            self.vocabulary_size = voc_size
             self.hidden_size = hid_size
             self.bptt_truncate = trunc
 
@@ -128,23 +127,23 @@ class GruRNN(object):
             # backwards for a purpose
             # The weights going from input layer to hidden layer
             # (U, in tutorial)
-            weights_ih = np.random.uniform(-np.sqrt(1./voc_size),
-                                            np.sqrt(1./voc_size),
-                                            (3, hid_size, voc_size))
+            weights_ih = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
+                                            np.sqrt(1./self.vocabulary_size),
+                                            (3, hid_size, self.vocabulary_size))
             # The weights going from hidden layer to hidden layer
             # (W, in tutorial)
-            weights_hh = np.random.uniform(-np.sqrt(1./voc_size),
-                                            np.sqrt(1./voc_size),
+            weights_hh = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
+                                            np.sqrt(1./self.vocabulary_size),
                                             (3, hid_size, hid_size))
             # The weights going from hidden layer to output layer
             # (V, in tutorial)
-            weights_ho = np.random.uniform(-np.sqrt(1./voc_size),
-                                            np.sqrt(1./voc_size),
-                                            (voc_size, hid_size))
+            weights_ho = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
+                                            np.sqrt(1./self.vocabulary_size),
+                                            (self.vocabulary_size, hid_size))
             # The bias for the hidden units
             bias = np.zeros((3, hid_size))
             # The bias for the output units
-            out_bias = np.zeros(voc_size)
+            out_bias = np.zeros(self.vocabulary_size)
 
             self.weights_ih = theano.shared(
                 name='weights_ih',
@@ -165,10 +164,6 @@ class GruRNN(object):
             self.out_bias = theano.shared(
                 name='out_bias',
                 value=out_bias.astype(theano.config.floatX))
-
-            self.vocabulary = []
-            self.word_to_index = {}
-            self.index_to_word = []
         else:
             self.load_parameters(model)
         # End of if statement
@@ -253,11 +248,6 @@ class GruRNN(object):
         # the calculated distribution
         out_error = T.sum(T.nnet.categorical_crossentropy(
             out + T.mean(out)/1000, output))
-        o_e = T.sum(
-            -T.sum(
-                T.extra_ops.to_one_hot(output, self.vocabulary_size)*T.log(out + T.mean(out)/1000)
-            )
-        )
 
         # Symbolically represents gradient calculations for gradient descent
         d_weights_ih = T.grad(out_error, self.weights_ih)
@@ -290,9 +280,6 @@ class GruRNN(object):
                      (self.bias, bias_update),
                      (self.out_bias, out_bias_update)]
         )
-
-        self.x_train = None
-        self.y_train = None
     # End of __init__()
 
     def calculate_total_loss(self, train_x, train_y):
@@ -346,17 +333,20 @@ class GruRNN(object):
         """
         self.log.info("Loading the dataset from %s" % filePath)
 
-        file = open(filePath, "rb")
-        vocabulary, index_to_word, word_to_index, x_train, y_train = cPickle.load(file)
+        with open(filePath, "rb") as data_file:
+            vocab, i_to_w, w_to_i, x_train, y_train = cPickle.load(data_file)
 
-        self.log.info("Dataset contains %d words" % len(vocabulary))
+            self.vocabulary = vocab
+            self.index_to_word = i_to_w
+            self.word_to_index = w_to_i
+            self.x_train = x_train
+            self.y_train = y_train
 
+            if self.unknown_token not in self.vocabulary:
+                self.vocabulary.append(self.unknown_token)
 
-        self.vocabulary = vocabulary
-        self.index_to_word = index_to_word
-        self.word_to_index = word_to_index
-        self.x_train = x_train
-        self.y_train = y_train
+            self.vocabulary_size = len(self.vocabulary)
+            self.log.info("Dataset contains %d words" % self.vocabulary_size)
     # End of calculate_loss()
 
     def load_parameters(self, model=None):
@@ -386,7 +376,7 @@ class GruRNN(object):
             weights_ho = params[5]
 
             self.vocabulary = params[6]
-            if not self.vocabulary[-1] == self.unknown_token:
+            if self.unknown_token not in self.vocabulary:
                 self.log.info("Appending unknown token")
                 self.vocabulary[-1] = self.unknown_token
             self.index_to_word = params[7]
@@ -739,7 +729,15 @@ def createDir(dirPath):
                 raise
 # End of createDir()
 
-if __name__ == "__main__":
+def parse_arguments():
+    """
+    Parses the command line arguments and returns the namespace with those
+    arguments.
+
+    :type return: Namespace object
+    :param return: The Namespace object containing the values of all supported
+                   command-line arguments.
+    """
     arg_parse = argparse.ArgumentParser()
     arg_parse.add_argument("-d", "--dir", default="./grurnn",
                            help="Directory for storing logs.")
@@ -765,9 +763,13 @@ if __name__ == "__main__":
                                 " training.")
     arg_parse.add_argument("-r", "--truncate", type=int, default=100,
                            help="The backpropagate truncate value.")
-    arg_parse.add_argument("-v", "--voc_size", type=int, default=8000,
-                           help="The vocabulary size for the network.")
-    args = arg_parse.parse_args()
+    arg_parse.add_argument("-i", "--hidden_size", type=int, default=100,
+                           help="The size of the hidden layers in the RNN.")
+    return arg_parse.parse_args()
+# End of parse_arguments()
+
+if __name__ == "__main__":
+    args = parse_arguments()
 
     argsdir = args.dir + "/" + time.strftime("%d%m%y%H") + "/";
     sentenceDir = argsdir
@@ -797,8 +799,12 @@ if __name__ == "__main__":
     testlog.addHandler(handler)
     testlog.info("Running a new GRU-RNN with logging")
 
-    RNN = GruRNN(model=args.model, trunc=args.truncate, voc_size=args.voc_size)
-    RNN.load_data(args.dataset)
+    RNN = GruRNN(
+        model=args.model,
+        trunc=args.truncate,
+        hid_size=args.hidden_size,
+        dataset=args.dataset
+    )
     #loss = RNN.calculate_loss(RNN.x_train, RNN.y_train)
     #self.log.info(loss)
     RNN.train_rnn(
