@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 23 March, 2017
+Date: 24 March, 2017
 """
 
 ###############################################################################
@@ -29,7 +29,7 @@ Date: 23 March, 2017
 #   the output for training, in tokenized format (as indexes)
 #
 # Author: Frank Wanye
-# Date: 23 March, 2017
+# Date: 24 March, 2017
 ###############################################################################
 
 # Specify documentation format
@@ -372,7 +372,7 @@ def create_story_dataset(vocab_size=8000):
 
     log.info("Calculating percent of words captured...")
     total = 0
-    
+
     for word in vocabulary:
         total += word_freq.freq(word[0])
 

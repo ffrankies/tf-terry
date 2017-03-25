@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 23 March, 2017
+Date: 25 March, 2017
 """
 
 ###############################################################################
@@ -27,7 +27,7 @@ Date: 23 March, 2017
 # Dataset source: https://www.kaggle.com/reddit/reddit-comments-may-2015
 #
 # Author: Frank Derry Wanye
-# Date: 24 March 2017
+# Date: 25 March 2017
 ###############################################################################
 
 # Specify documentation format
@@ -76,7 +76,7 @@ class GruRNN(object):
     """
 
     def __init__(self, hid_size=100, trunc=4, model=None,
-                 dataset="reladred.pkl"):
+                 dataset="reladred.pkl", emb_size=100):
         """
         Initializes the Vanilla RNN with the provided vocabulary_size,
         hidden layer size, and bptt_truncate. Also initializes the functions
@@ -120,16 +120,23 @@ class GruRNN(object):
             self.log.info("Initializing RNN parameters and functions...")
             self.hidden_size = hid_size
             self.bptt_truncate = trunc
+            self.embed_size = emb_size
 
             # Instantiate the network weights
             # I feel like the first and third are switched for some reason...
             # but it's pretty consistent in the example code. Perhaps it's
             # backwards for a purpose
-            # The weights going from input layer to hidden layer
+            # The weights going from input layer to the embedding layer
+            # (E, in tutorial)
+            weights_emb = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
+                                             np.sqrt(1./self.vocabulary_size),
+                                             (emb_size, self.vocabulary_size))
+
+            # The weights going from embedding layer to hidden layer
             # (U, in tutorial)
-            weights_ih = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
+            weights_eh = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
                                             np.sqrt(1./self.vocabulary_size),
-                                            (3, hid_size, self.vocabulary_size))
+                                            (3, hid_size, emb_size))
             # The weights going from hidden layer to hidden layer
             # (W, in tutorial)
             weights_hh = np.random.uniform(-np.sqrt(1./self.vocabulary_size),
@@ -145,9 +152,13 @@ class GruRNN(object):
             # The bias for the output units
             out_bias = np.zeros(self.vocabulary_size)
 
-            self.weights_ih = theano.shared(
-                name='weights_ih',
-                value=weights_ih.astype(theano.config.floatX))
+            self.weights_emb = theano.shared(
+                name='weights_emb',
+                value=weights.eh.astype(theano.config.floatX))
+
+            self.weights_eh = theano.shared(
+                name='weights_eh',
+                value=weights_eh.astype(theano.config.floatX))
 
             self.weights_hh = theano.shared(
                 name='weights_hh',
@@ -170,11 +181,13 @@ class GruRNN(object):
 
         self.log.info("Network parameters: \n"
                       "Vocabulary size: %d\n"
+                      "Embedding layer size: %d\n"
                       "Hidden layer size: %d\n"
                       "Bptt truncate: %d\n" %
                       (self.vocabulary_size,
+                       self.embed_size,
                        self.hidden_size,
-                       self.bptt_truncate))
+                       self.bptt_truncate,))
 
         # Symbolic representation of one input sentence
         input = T.ivector('sentence')
@@ -193,21 +206,24 @@ class GruRNN(object):
             :param word: the output of the hidden layer from the previous
                          horizontal layer
             """
+            # Word Embedding Layer
+            embedding = self.weights_emb[:, word]
+
             # GRU layer
             update_gate = T.nnet.hard_sigmoid(
-                self.weights_ih[0][:, word] +
+                self.weights_eh[0].dot(embedding) +
                 self.weights_hh[0].dot(previous_state) +
                 self.bias[0]
             )
 
             reset_gate = T.nnet.hard_sigmoid(
-                self.weights_ih[1][:, word] +
+                self.weights_eh[1].dot(embedding) +
                 self.weights_hh[1].dot(previous_state) +
                 self.bias[1]
             )
 
             hypothesis = T.tanh(
-                self.weights_ih[2][:, word] +
+                self.weights_eh[2].dot(embedding) +
                 self.weights_hh[2].dot(previous_state * reset_gate) +
                 self.bias[2]
             )
@@ -215,11 +231,12 @@ class GruRNN(object):
             temp = T.ones_like(update_gate) - update_gate
             current_state = temp * hypothesis + update_gate * previous_state
 
+            # Softmax returns matrix with one row, so need to extract row from
+            # matrix
             current_output = T.nnet.softmax(
                 self.weights_ho.dot(current_state) + self.out_bias
             )[0]
 
-            # Not sure why current_output[0] and not just current_output...
             return [current_output, current_state]
 
         #######################################################################
@@ -250,7 +267,8 @@ class GruRNN(object):
             out + T.mean(out)/1000, output))
 
         # Symbolically represents gradient calculations for gradient descent
-        d_weights_ih = T.grad(out_error, self.weights_ih)
+        d_weights_emb = T.grad(out_error, self.weights_emb)
+        d_weights_eh = T.grad(out_error, self.weights_eh)
         d_weights_hh = T.grad(out_error, self.weights_hh)
         d_weights_ho = T.grad(out_error, self.weights_ho)
         d_bias = T.grad(out_error, self.bias)
@@ -261,12 +279,13 @@ class GruRNN(object):
         self.predict = theano.function([input], prediction)
         self.calculate_error = theano.function([input, output], out_error)
         self.bptt = theano.function([input, output],
-            [d_weights_ih, d_weights_hh, d_weights_ho, d_bias])
+            [d_weights_emb, d_weights_eh, d_weights_hh, d_weights_ho, d_bias])
 
         # Stochastic Gradient Descent step
         learning_rate = T.scalar('learning_rate')
 
-        ih_update = self.weights_ih - learning_rate * d_weights_ih
+        emb_update = self.weights_emb - learning_rate * d_weights_emb
+        eh_update = self.weights_eh - learning_rate * d_weights_eh
         hh_update = self.weights_hh - learning_rate * d_weights_hh
         ho_update = self.weights_ho - learning_rate * d_weights_ho
         bias_update = self.bias - learning_rate * d_bias
@@ -274,7 +293,8 @@ class GruRNN(object):
 
         self.sgd_step = theano.function(
             [input, output, learning_rate], [],
-            updates=[(self.weights_ih, ih_update),
+            updates=[(self.weights_emb, emb_update),
+                     (self.weights_eh, eh_update),
                      (self.weights_hh, hh_update),
                      (self.weights_ho, ho_update),
                      (self.bias, bias_update),
@@ -371,7 +391,7 @@ class GruRNN(object):
             self.hidden_size = params[1]
             self.bptt_truncate = params[2]
 
-            weights_ih = params[3]
+            weights_eh = params[3]
             weights_hh = params[4]
             weights_ho = params[5]
 
@@ -385,9 +405,16 @@ class GruRNN(object):
             bias = params[9]
             out_bias = params[10]
 
-            self.weights_ih = theano.shared(
-                name='weights_ih',
-                value=weights_ih.astype(theano.config.floatX))
+            self.embed_size = params[11]
+            weights_emb = params[12]
+
+            self.weights_emb = theano.shared(
+                name='weights_emb',
+                value=weights_emb.astype(theano.config.floatX))
+
+            self.weights_eh = theano.shared(
+                name='weights_eh',
+                value=weights_eh.astype(theano.config.floatX))
 
             self.weights_hh = theano.shared(
                 name='weights_hh',
@@ -417,23 +444,35 @@ class GruRNN(object):
             self.vocabulary_size,
             self.hidden_size,
             self.bptt_truncate,
-            self.weights_ih.get_value(),
+            self.weights_eh.get_value(),
             self.weights_hh.get_value(),
             self.weights_ho.get_value(),
             self.vocabulary,
             self.index_to_word,
             self.word_to_index,
             self.bias.get_value(),
-            self.out_bias.get_value()
+            self.out_bias.get_value(),
+            self.embed_size,
+            self.weights_emb.get_value()
         )
+
+        # Save embeddings separately, so they can be accessed later
+        embed_params = (self.embed_size, self.weights_emb.get_value())
 
         if path is None:
             modelPath = "model.pkl"
             with open(modelPath, "wb") as file:
                 cPickle.dump(params, file, protocol=2)
+
+            embedPath = "embed.pkl"
+            with open(modelPath, "wb") as file:
+                cPickle.dump(embed_params, file, protocol=2)
         else:
             with open(path + ".pkl", "wb") as file:
                 cPickle.dump(params, file, protocol=2)
+
+            with open(path + "embed.pkl", "wb") as file:
+                cPickle.dump(embed_params, file, protocol=2)
     # End of save_parameters()
 
     def train_rnn(self, learning_rate=0.005, epochs=1, patience=10000,
@@ -521,7 +560,7 @@ class GruRNN(object):
 
             #Preventing zeros in weights
             #Retrieve numpy arrays of each network parameter
-            local_w_ih = self.weights_ih.get_value()
+            local_w_eh = self.weights_eh.get_value()
             local_w_hh = self.weights_hh.get_value()
             local_w_ho = self.weights_ho.get_value()
             local_bias = self.bias.get_value()
@@ -532,13 +571,13 @@ class GruRNN(object):
 
             print("Max weight: %f, min weight: %f" %
                 (np.max([
-                    np.max(local_w_ih),
+                    np.max(local_w_eh),
                     np.max(local_w_hh),
                     np.max(local_w_ho),
                     np.max(local_bias),
                     np.max(local_out_bias)]),
                  np.min([
-                    np.min(local_w_ih),
+                    np.min(local_w_eh),
                     np.min(local_w_hh),
                     np.min(local_w_ho),
                     np.min(local_bias),
@@ -546,10 +585,10 @@ class GruRNN(object):
 
             print("Mean out: %f" % np.mean(out))
 
-            if np.isnan(local_bias).any() or np.isnan(local_out_bias).any() or np.isnan(local_w_ih).any() or np.isnan(local_w_hh).any() or np.isnan(local_w_ho).any():
+            if np.isnan(local_bias).any() or np.isnan(local_out_bias).any() or np.isnan(local_w_eh).any() or np.isnan(local_w_hh).any() or np.isnan(local_w_ho).any():
                 print("Found a nan inside the weights.")
 
-            if np.isinf(local_bias).any() or np.isinf(local_out_bias).any() or np.isinf(local_w_ih).any() or np.isinf(local_w_hh).any() or np.isinf(local_w_ho).any():
+            if np.isinf(local_bias).any() or np.isinf(local_out_bias).any() or np.isinf(local_w_eh).any() or np.isinf(local_w_hh).any() or np.isinf(local_w_ho).any():
                 print("Found an infinity inside the weights.")
 
             # Alternative - use theano.tensor.clip and switch to switch zeros
