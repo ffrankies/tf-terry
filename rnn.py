@@ -154,7 +154,7 @@ class GruRNN(object):
 
             self.weights_emb = theano.shared(
                 name='weights_emb',
-                value=weights.eh.astype(theano.config.floatX))
+                value=weights_emb.astype(theano.config.floatX))
 
             self.weights_eh = theano.shared(
                 name='weights_eh',
