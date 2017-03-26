@@ -50,6 +50,20 @@ import argparse
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt # For plotting
+from enum import Enum
+
+class Mode(Enum):
+    """
+    An enum class for describing the mode of the RNN. The mode corresponds to
+    what kind of output the RNN is meant to produce. Modes are:
+    1 - SENTENCES
+    2 - PARAGRAPHS
+    3 - STORIES
+    """
+    SENTENCES = 1
+    PARAGRAPHS = 2
+    STORIES = 3
+# End of Mode(Enum)
 
 class GruRNN(object):
     """
@@ -60,6 +74,8 @@ class GruRNN(object):
         output      output      output      ...     output
           |           |           |                   |
     ----hidden------hidden------hidden------...-----hidden----
+          |           |           |                   |
+      embedding   embedding   embedding     ...   embedding
           |           |           |                   |
         input       input       input       ...     input
     The weights in this network are shared between the horizontal layers.
@@ -72,7 +88,7 @@ class GruRNN(object):
     corresponding to the index with the highest probability.
 
     :author: Frank Wanye
-    :date: 24 Mar 2017
+    :date: 26 Mar 2017
     """
 
     def __init__(self, hid_size=100, trunc=4, model=None,
@@ -747,9 +763,58 @@ class GruRNN(object):
             # End of while loop
             story.append(sampled_word)
         story_str = [self.index_to_word[word] for word in story[1:-1]]
-        story_str = " ".join(story_str)
         return (story_str, (num_unknowns / num_predictions) * 100)
     # End of generate_story()
+
+    def generate_output(self, mode=Mode.STORIES, num=25, path="out.txt",
+                        minLength=0):
+        """
+        Saves 'num' of RNN output of type 'mode' to the file with path 'path'.
+
+        :type mode: Mode Enum
+        :param mode: The Mode of the RNN (the type of output it produces).
+
+        :type num: int
+        :param num: The number of outputs to save to file.
+
+        :type path: String
+        :param path: The path to the file in which the output will be saved.
+
+        :type minLength: int
+        :param minLength: The minimum length of the output to be saved.
+        """
+        attempts = 0
+        successes = 0
+        percent_unknowns = 0
+
+        with open(path, "w") as outFile:
+
+            while successes < num:
+                if mode is Mode.SENTENCES:
+                    output = self.generate_sentence()
+                if mode is Mode.PARAGRAPHS:
+                    output = self.generate_paragraph()
+                if mode is Mode.STORIES:
+                    output = self.generate_story()
+
+                percent_unknowns += output[1]
+                output = output[0]
+
+                if len(output) > minLength:
+                    file.write(" ".join(output) + "\n\n\n")
+                    successes += 1
+
+                attempts += 1
+            # End of while loop
+        # End of file usage
+
+        testlog.info("Generated %d outputs after %d attempts." %
+                     (successes, attempts))
+
+        percent_unknowns = percent_unknowns / attempts
+        testlog.info("%f percent of the words generated were unknown tokens." %
+                     percent_unknowns)
+    # End of generate_output()
 
 def createDir(dirPath):
     """
@@ -804,6 +869,8 @@ def parse_arguments():
                            help="The backpropagate truncate value.")
     arg_parse.add_argument("-i", "--hidden_size", type=int, default=100,
                            help="The size of the hidden layers in the RNN.")
+    arg_parse.add_argument("-b", "--embed_size", type=int, default=100,
+                           help="The size of the embedding layer in the RNN.")
     return arg_parse.parse_args()
 # End of parse_arguments()
 
@@ -842,10 +909,10 @@ if __name__ == "__main__":
         model=args.model,
         trunc=args.truncate,
         hid_size=args.hidden_size,
-        dataset=args.dataset
+        dataset=args.dataset,
+        emb_size=args.embed_size
     )
-    #loss = RNN.calculate_loss(RNN.x_train, RNN.y_train)
-    #self.log.info(loss)
+
     RNN.train_rnn(
         epochs=args.epochs,
         patience=args.patience,
@@ -860,28 +927,6 @@ if __name__ == "__main__":
         testlog.info("Finished running test.")
         sys.exit(0)
 
-    testlog.info("Generating stories")
+    testlog.info("Generating output")
 
-    file = open(sentenceDir+"stories.txt", "w")
-
-    attempts = 0
-    successes = 0
-    percent_unknowns = 0
-
-    while successes < 25:
-        story = RNN.generate_story()
-        print(story[0])
-        percent_unknowns += story[1]
-        # if len(story) >= 50:
-        file.write(" ".join(story[0]) + "\n")
-        successes += 1
-        attempts += 1
-
-    file.close()
-
-    testlog.info("Generated %d stories after %d attempts." %
-                 (successes, attempts))
-
-    percent_unknowns = percent_unknowns / attempts
-    testlog.info("%f percent of the words generated were unknown tokens." %
-                 percent_unknowns)
+    RNN.generate_output(path=sentenceDir + "out.txt")
