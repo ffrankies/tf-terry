@@ -27,7 +27,7 @@ Date: 25 March, 2017
 # Dataset source: https://www.kaggle.com/reddit/reddit-comments-may-2015
 #
 # Author: Frank Derry Wanye
-# Date: 25 March 2017
+# Date: 26 March 2017
 ###############################################################################
 
 # Specify documentation format
@@ -48,7 +48,7 @@ import logging
 import logging.handlers
 import argparse
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg') # For saving of plot
 from matplotlib import pyplot as plt # For plotting
 from enum import Enum
 
@@ -684,21 +684,27 @@ class GruRNN(object):
         """
         if self.word_to_index is None:
             self.log.info("Need to load a model or data before this step.")
-
             return []
+
+        num_predictions = 0
+        num_unknowns = 0
+
         # Start sentence with the start token
         sentence = [self.word_to_index[self.sentence_start_token]]
         # Predict next word until end token is received
         while not sentence[-1] == self.word_to_index[self.sentence_end_token]:
+            num_predictions += 1
             next_word_probs = self.forward_propagate(sentence)
-            sampled_word = self.word_to_index[self.unknown_token]
+            samples = np.random.multinomial(1, next_word_probs[-1])
+            sampled_word = np.argmax(samples)
             # We don't want the unknown token to appear in the sentence
             while sampled_word == self.word_to_index[self.unknown_token]:
+                num_unknowns += 1
                 samples = np.random.multinomial(1, next_word_probs[-1])
                 sampled_word = np.argmax(samples)
             sentence.append(sampled_word)
         sentence_str = [self.index_to_word[word] for word in sentence[1:-1]]
-        return sentence_str
+        return (sentence_str, (num_predictions / num_unknowns) * 100)
     # End of generate_sentence()
 
     def generate_paragraph(self):
@@ -715,19 +721,25 @@ class GruRNN(object):
             self.log.info("Need to load a model or data before this step.")
             return []
 
+        num_predictions = 0
+        num_unknowns = 0
+
         # Start paragraph with the start token
         paragraph = [self.word_to_index[self.paragraph_start]]
         # Predict next word until end token is received
         while not paragraph[-1] == self.word_to_index[self.paragraph_end]:
+            num_predictions += 1
             next_word_probs = self.forward_propagate(paragraph)
-            sampled_word = self.word_to_index[self.unknown_token]
+            samples = np.random.multinomial(1, next_word_probs[-1])
+            sampled_word = np.argmax(samples)
             # We don't want the unknown token to appear in the paragraph
             while sampled_word == self.word_to_index[self.unknown_token]:
+                num_unknowns += 1
                 samples = np.random.multinomial(1, next_word_probs[-1])
                 sampled_word = np.argmax(samples)
             paragraph.append(sampled_word)
         paragraph_str = [self.index_to_word[word] for word in paragraph[1:-1]]
-        return paragraph_str
+        return (paragraph_str, (num_predictions / num_unknowns) * 100)
     # End of generate_paragraph()
 
     def generate_story(self):
@@ -801,20 +813,21 @@ class GruRNN(object):
                 output = output[0]
 
                 if len(output) > minLength:
-                    file.write(" ".join(output) + "\n\n\n")
+                    outFile.write(" ".join(output) + "\n\n\n")
                     successes += 1
 
                 attempts += 1
             # End of while loop
         # End of file usage
 
-        testlog.info("Generated %d outputs after %d attempts." %
+        self.log.info("Generated %d outputs after %d attempts." %
                      (successes, attempts))
 
         percent_unknowns = percent_unknowns / attempts
-        testlog.info("%f percent of the words generated were unknown tokens." %
+        self.log.info("%f percent of the words generated were unknown tokens." %
                      percent_unknowns)
     # End of generate_output()
+# End of GruRNN(object)
 
 def createDir(dirPath):
     """
