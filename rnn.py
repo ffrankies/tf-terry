@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 25 March, 2017
+Date: 26 March, 2017
 """
 
 ###############################################################################
@@ -27,7 +27,7 @@ Date: 25 March, 2017
 # Dataset source: https://www.kaggle.com/reddit/reddit-comments-may-2015
 #
 # Author: Frank Derry Wanye
-# Date: 26 March 2017
+# Date: 30 March 2017
 ###############################################################################
 
 # Specify documentation format
@@ -48,6 +48,7 @@ import logging
 import logging.handlers
 import argparse
 import matplotlib
+import re
 matplotlib.use('Agg') # For saving of plot
 from matplotlib import pyplot as plt # For plotting
 from enum import Enum
@@ -88,7 +89,7 @@ class GruRNN(object):
     corresponding to the index with the highest probability.
 
     :author: Frank Wanye
-    :date: 26 Mar 2017
+    :date: 30 Mar 2017
     """
 
     def __init__(self, hid_size=100, trunc=4, model=None,
@@ -102,14 +103,14 @@ class GruRNN(object):
         :param hidden_size: the number of hidden layer neurons in the network.
                             Default: 100
 
-        :type bptt_truncate: int
-        :param bptt_truncate: how far back back-propagation-through-time goes.
-                              This is a crude method of reducing the effect
-                              of vanishing/exploding gradients, as well as
-                              reducing training time, since the network won't
-                              have to go through every single horizontal layer
-                              during training. NOTE: this causes the accuracy
-                              of the network to decrease. Default: 4
+        :type trunc: int
+        :param trunc: how far back back-propagation-through-time goes.
+                      This is a crude method of reducing the effect
+                      of vanishing/exploding gradients, as well as
+                      reducing training time, since the network won't
+                      have to go through every single horizontal layer
+                      during training. NOTE: this causes the accuracy
+                      of the network to decrease. Default: 4
 
         :type model: string
         :param model: the name of the saved model that contains all the RNN
@@ -849,7 +850,7 @@ class GruRNN(object):
                 output = output[0]
 
                 if len(output) > minLength:
-                    outFile.write(" ".join(output) + "\n\n\n")
+                    outFile.write(self.pretty_print(output) + "\n\n\n")
                     successes += 1
 
                 attempts += 1
@@ -863,6 +864,27 @@ class GruRNN(object):
         self.log.info("%f percent of the words generated were unknown tokens." %
                      percent_unknowns)
     # End of generate_output()
+
+    def pretty_print(self, output):
+        """
+        Converts RNN output into a string.
+        Got some help from: http://stackoverflow.com/a/29044417/5760608
+
+        :type output: list of strings
+        :param output: generated output.
+        """
+        string = " ".join(output)
+        string = string.replace("\'\'", "\"")
+        string = string.replace("``", "\"")
+        string = string.replace(" .", ".")
+        string = string.replace(" ,", ",")
+        string = string.replace(" !", "!")
+        string = string.replace(" ?", "?")
+        string = re.split('([.!?] *)', string)
+        string = [s.capitalize() for s in string]
+        string = "".join(string)
+        string = string.replace(" i ", " I ")
+        return string
 # End of GruRNN(object)
 
 def createDir(dirPath):

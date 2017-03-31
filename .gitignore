@@ -90,3 +90,8 @@ ENV/
 
 # Other
 results/
+.extra_stuff
+grurnn/
+app/
+server.py
+try.py

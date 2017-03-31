@@ -1,9 +1,12 @@
 <!DOCTYPE hmtl>
 <html>
-  <head>
-    <title>{{ title }} - microblog</title>
-  </head>
-  <body>
-      <h1>Hello, {{ user.nickname }}!</h1>
-  </body>
+    <head>
+        <title>{{ title }} - microblog</title>
+    </head>
+    <body>
+        <h1>Hello, {{ user.nickname }}!</h1>
+        {% for post in posts %}
+        <div><p>{{ post }}</p></div>
+        {% endfor %}
+    </body>
 </html>
