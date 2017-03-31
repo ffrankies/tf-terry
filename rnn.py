@@ -502,7 +502,7 @@ class GruRNN(object):
         :type losses: list
         :param losses: a list of losses, one per epoch.
         """
-        if losses=None:
+        if losses is None:
             self.log.error("No losses to save.")
             return
 
