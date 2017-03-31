@@ -1000,4 +1000,10 @@ if __name__ == "__main__":
 
     testlog.info("Generating output")
 
-    RNN.generate_output(path=sentenceDir + "out.txt")
+    if RNN.sentence_start_token in RNN.word_to_index:
+        mode=Mode.SENTENCES
+    elif RNN.paragraph_start in RNN.word_to_index:
+        mode=Mode.PARAGRAPHS
+    elif RNN.story_start in RNN.word_to_index:
+        mode=Mode.STORIES
+    RNN.generate_output(path=sentenceDir + "out.txt", mode=mode)
