@@ -491,6 +491,37 @@ class GruRNN(object):
                 cPickle.dump(embed_params, file, protocol=2)
     # End of save_parameters()
 
+    def save_graph(self, path=None, losses=None):
+        """
+        Saves a graph of epochs (x-axis) vs loss (y-axis) using the list of
+        losses 'losses' in the file in path 'path'.
+
+        :type path: String
+        :param path: the path to the file where the graph will be saved.
+
+        :type losses: list
+        :param losses: a list of losses, one per epoch.
+        """
+        if losses is None:
+            self.log.error("No losses to save.")
+            return
+
+        # Plot a graph of loss against epochs, save graph
+        self.log.info("Plotting a graph of loss vs iteration")
+        plot_iterations = []
+        plot_losses = []
+        for i in range(len(losses)):
+            plot_iterations.append(i)
+            plot_losses.append(losses[i][1])
+        plt.plot(plot_iterations, plot_losses)
+        if path is None:
+            modelPath = "loss_plot.png"
+            plt.savefig(modelPath)
+        else:
+            modelPath = path + "loss_plot.png"
+            plt.savefig(modelPath)
+    # End of save_graph()
+
     def train_rnn(self, learning_rate=0.005, epochs=1, patience=10000,
                   path=None, max=None, testing=False, anneal=0.000001):
         """
@@ -576,36 +607,36 @@ class GruRNN(object):
 
             #Preventing zeros in weights
             #Retrieve numpy arrays of each network parameter
-            local_w_eh = self.weights_eh.get_value()
-            local_w_hh = self.weights_hh.get_value()
-            local_w_ho = self.weights_ho.get_value()
-            local_bias = self.bias.get_value()
-            local_out_bias = self.out_bias.get_value()
-
-            out = self.forward_propagate(self.x_train[3])
-            print("%f - %f, %f" % (np.max(out), np.min(out), np.sum(out)))
-
-            print("Max weight: %f, min weight: %f" %
-                (np.max([
-                    np.max(local_w_eh),
-                    np.max(local_w_hh),
-                    np.max(local_w_ho),
-                    np.max(local_bias),
-                    np.max(local_out_bias)]),
-                 np.min([
-                    np.min(local_w_eh),
-                    np.min(local_w_hh),
-                    np.min(local_w_ho),
-                    np.min(local_bias),
-                    np.min(local_out_bias)])))
-
-            print("Mean out: %f" % np.mean(out))
-
-            if np.isnan(local_bias).any() or np.isnan(local_out_bias).any() or np.isnan(local_w_eh).any() or np.isnan(local_w_hh).any() or np.isnan(local_w_ho).any():
-                print("Found a nan inside the weights.")
-
-            if np.isinf(local_bias).any() or np.isinf(local_out_bias).any() or np.isinf(local_w_eh).any() or np.isinf(local_w_hh).any() or np.isinf(local_w_ho).any():
-                print("Found an infinity inside the weights.")
+            # local_w_eh = self.weights_eh.get_value()
+            # local_w_hh = self.weights_hh.get_value()
+            # local_w_ho = self.weights_ho.get_value()
+            # local_bias = self.bias.get_value()
+            # local_out_bias = self.out_bias.get_value()
+            #
+            # out = self.forward_propagate(self.x_train[3])
+            # print("%f - %f, %f" % (np.max(out), np.min(out), np.sum(out)))
+            #
+            # print("Max weight: %f, min weight: %f" %
+            #     (np.max([
+            #         np.max(local_w_eh),
+            #         np.max(local_w_hh),
+            #         np.max(local_w_ho),
+            #         np.max(local_bias),
+            #         np.max(local_out_bias)]),
+            #      np.min([
+            #         np.min(local_w_eh),
+            #         np.min(local_w_hh),
+            #         np.min(local_w_ho),
+            #         np.min(local_bias),
+            #         np.min(local_out_bias)])))
+            #
+            # print("Mean out: %f" % np.mean(out))
+            #
+            # if np.isnan(local_bias).any() or np.isnan(local_out_bias).any() or np.isnan(local_w_eh).any() or np.isnan(local_w_hh).any() or np.isnan(local_w_ho).any():
+            #     print("Found a nan inside the weights.")
+            #
+            # if np.isinf(local_bias).any() or np.isinf(local_out_bias).any() or np.isinf(local_w_eh).any() or np.isinf(local_w_hh).any() or np.isinf(local_w_ho).any():
+            #     print("Found an infinity inside the weights.")
 
             # Alternative - use theano.tensor.clip and switch to switch zeros
             # for small numbers, and clip numbers to a given max and min value
@@ -624,8 +655,8 @@ class GruRNN(object):
 
             # End of loss evaluation
 
-            # Adjust learning rate if loss increases
-            if (len(losses) > 1 and losses[-1][1] >= losses[-2][1]):
+            # Adjust learning rate if loss increases or stays almost constant
+            if (len(losses) > 1 and losses[-1][1] >= 0.99 * losses[-2][1]):
                 if learning_rate > anneal:
                     learning_rate = learning_rate * 0.5
                     self.log.info("Setting learning rate to %f" % learning_rate)
@@ -639,6 +670,24 @@ class GruRNN(object):
                      " loss of %f. Training took %.2f m") %
                     (epochs, losses[-1][1], (end_time - start_time) / 60)
                 )
+
+                self.save_graph(path=path, losses=losses)
+
+                return (0, (end_time - start_time) / 60)
+
+            # End training if loss no longer decreasing significantly
+            if len(losses) > 10 and losses[-1][1] >= 0.99 * losses[-10][1]:
+                end_time = timeit.default_timer()
+
+                self.log.info(
+                    ("Training ended because the loss is no longer "
+                     "significantly decreasing. Training took %d epochs, with "
+                     "a final loss of %f. Training took %.2f m") %
+                    (epochs, losses[-1][1], (end_time - start_time) / 60)
+                )
+
+                self.save_graph(path=path, losses=losses)
+
                 return (0, (end_time - start_time) / 60)
 
             # Saving model parameters
@@ -654,20 +703,7 @@ class GruRNN(object):
             (epochs, losses[-1][1], (end_time - start_time) / 60)
         )
 
-        # Plot a graph of loss against epochs, save graph
-        self.log.info("Plotting a graph of loss vs iteration")
-        plot_iterations = []
-        plot_losses = []
-        for i in range(len(losses)):
-            plot_iterations.append(i)
-            plot_losses.append(losses[i][1])
-        plt.plot(plot_iterations, plot_losses)
-        if path is None:
-            modelPath = "loss_plot.png"
-            plt.savefig(modelPath)
-        else:
-            modelPath = path + "loss_plot.png"
-            plt.savefig(modelPath)
+        self.save_graph(path=path, losses=losses)
 
         return (losses[-1][1], (end_time - start_time) / 60)
     # End of train_rnn()
