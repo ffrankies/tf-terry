@@ -18,6 +18,16 @@ body {
     background-color: #6B4513;
 }
 
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+
 h1 {
     width: 100vw;
     height: 13vh;
@@ -65,6 +75,31 @@ h2 {
     color: #F4A460;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+    cursor: pointer;
+}
+
+.button:hover {
+    color: #FFFAEE;
+    box-shadow: 0px 2px 4px black;
+}
+
+.button:active {
+    background-color: #D2691E;
+    color: #FFFAEE;
+    box-shadow: 0px 2px 4px black;
+}
+
+.container {
+    width: 75vw;
+    min-height: 10vh;
+    margin: 2vh auto 2vh auto;
+    text-align: left;
+    padding: 2vh 2vw 2vh 2vw;
+    border: 2px solid black;
+    font-size: 4vh;
+    line-height: 4vh;
+    box-sizing: border-box;
+    color: #F4A460;
 }
 
 #footerrow {
@@ -83,6 +118,7 @@ h2 {
 a, a:visited, a:link {
     text-decoration: none;
     color: #F4A460;
+    margin: auto 10vw;
 }
 
 a:hover {
