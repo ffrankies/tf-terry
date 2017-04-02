@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 26 March, 2017
+Date: 2 April, 2017
 """
 
 ###############################################################################
@@ -27,7 +27,7 @@ Date: 26 March, 2017
 # Dataset source: https://www.kaggle.com/reddit/reddit-comments-may-2015
 #
 # Author: Frank Derry Wanye
-# Date: 30 March 2017
+# Date: 2 April 2017
 ###############################################################################
 
 # Specify documentation format
@@ -87,9 +87,6 @@ class GruRNN(object):
     1. The output vector will contain the probabilities for each possible word
     being the next word. The word chosen as the actual output will the word
     corresponding to the index with the highest probability.
-
-    :author: Frank Wanye
-    :date: 30 Mar 2017
     """
 
     def __init__(self, hid_size=100, trunc=4, model=None,
@@ -741,7 +738,7 @@ class GruRNN(object):
                 sampled_word = np.argmax(samples)
             sentence.append(sampled_word)
         sentence_str = [self.index_to_word[word] for word in sentence[1:-1]]
-        return (sentence_str, (num_predictions / num_unknowns) * 100)
+        return (sentence_str, (num_unknowns / num_predictions) * 100)
     # End of generate_sentence()
 
     def generate_paragraph(self):
@@ -776,14 +773,17 @@ class GruRNN(object):
                 sampled_word = np.argmax(samples)
             paragraph.append(sampled_word)
         paragraph_str = [self.index_to_word[word] for word in paragraph[1:-1]]
-        return (paragraph_str, (num_predictions / num_unknowns) * 100)
+        return (paragraph_str, (num_unknowns / num_predictions) * 100)
     # End of generate_paragraph()
 
-    def generate_story(self):
+    def generate_story(self, min_length=500):
         """
         Generates one story based on current model parameters. Model needs
         to be loaded or trained before this step in order to produce any
         results.
+
+        :type min_length: int
+        :param min_length: the minimum length of the generated story
 
         :return type: list of strings
         :return param: a generated story, with each word being an item in
@@ -796,8 +796,26 @@ class GruRNN(object):
         num_predictions = 0
         num_unknowns = 0
 
+        unknown = self.word_to_index[self.unknown_token]
+        end = self.word_to_index[self.story_end]
         # Start story with the start token
         story = [self.word_to_index[self.story_start]]
+
+        # Ensuring minimum length of story is met.
+        while len(story)-1 < min_length:
+            num_predictions += 1
+            next_word_probs = self.forward_propagate(story)
+            samples = np.random.multinomial(1, next_word_probs[-1])
+            sampled_word = np.argmax(samples)
+            # We don't want the unknown token to appear in the story
+            while sampled_word == unknown or sampled_word == end:
+                num_unknowns += 1
+                samples = np.random.multinomial(1, next_word_probs[-1])
+                sampled_word = np.argmax(samples)
+            # End of while loop
+            story.append(sampled_word)
+
+        # After minimum length requirement met, reach 'natural' conclusion.
         # Predict next word until end token is received
         while not story[-1] == self.word_to_index[self.story_end]:
             num_predictions += 1
@@ -805,12 +823,13 @@ class GruRNN(object):
             samples = np.random.multinomial(1, next_word_probs[-1])
             sampled_word = np.argmax(samples)
             # We don't want the unknown token to appear in the story
-            while sampled_word == self.word_to_index[self.unknown_token]:
+            while sampled_word == unknown:
                 num_unknowns += 1
                 samples = np.random.multinomial(1, next_word_probs[-1])
                 sampled_word = np.argmax(samples)
             # End of while loop
             story.append(sampled_word)
+
         story_str = [self.index_to_word[word] for word in story[1:-1]]
         return (story_str, (num_unknowns / num_predictions) * 100)
     # End of generate_story()
@@ -884,6 +903,11 @@ class GruRNN(object):
         string = [s.capitalize() for s in string]
         string = "".join(string)
         string = string.replace(" i ", " I ")
+        string = string.replace(" \'re", "\'re")
+        string = string.replace(" \'d", "\'d")
+        string = string.replace(" \'m", "\'m")
+        string = string.replace(" n\'t", "n\'t")
+        string = string.replace(" \'s", "\'s")
         return string
 # End of GruRNN(object)
 
@@ -895,7 +919,8 @@ def createDir(dirPath):
     :param dirPath: the path of the directory to be created.
     """
     try:
-        os.makedirs(dirPath, exist_ok=True) # Python 3.2+
+        if os.path.dirname(dirPath) != "":
+            os.makedirs(os.path.dirname(dirPath), exist_ok=True) # Python 3.2+
     except TypeError:
         try: # Python 3.2-
             os.makedirs(dirPath)
