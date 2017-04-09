@@ -264,6 +264,15 @@ def tokenize_paragraphs(num_examples=None):
     global paragraph_end
     global log
 
+    log.info("Replacing spaces with space tokens")
+    paragraphs = [paragraph.replace(" ", " %s " % space_token)
+                 for paragraph in paragraphs]
+    paragraphs = [paragraph.replace("\'\'", "\"") for paragraph in paragraphs]
+    paragraphs = [paragraph.replace("``", "\"") for paragraph in paragraphs]
+    for paragraph in paragraphs:
+        if "[" in paragraph or "]" in paragraph:
+            paragraphs.remove(paragraph)
+
     log.info("Breaking comments down into paragraphs.")
     for comment in comments:
         paragraphs.extend(re.split('\n+', comment.lower()))
@@ -340,6 +349,15 @@ def tokenize_stories(num_examples=None):
     global story_start
     global story_end
     global log
+
+    log.info("Replacing spaces with space tokens")
+    stories = [story.replace(" ", " %s " % space_token)
+                 for story in stories]
+    stories = [story.replace("\'\'", "\"") for story in stories]
+    stories = [story.replace("``", "\"") for story in stories]
+    for story in stories:
+        if "[" in story or "]" in story:
+            stories.remove(story)
 
     log.info("Retrieving stories from data.")
     stories = [comment.lower() for comment in comments]
