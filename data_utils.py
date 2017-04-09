@@ -185,12 +185,14 @@ def tokenize_sentences(num_examples=None):
     sentences = list(sentences)
     log.info("%d sentences found in dataset." % len(sentences))
 
-
     log.info("Preprocessing sentences")
+    sents = []
     for item in sentences:
         item = item.replace(" ", " %s " % space_token)
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
+        sents.append(item)
+    sentences = sents
 
     for sentence in sentences:
         if "[" in sentence or "]" in sentence:
