@@ -892,7 +892,12 @@ class GruRNN(object):
         :type output: list of strings
         :param output: generated output.
         """
-        string = " ".join(output)
+        if "SPACE_TOKEN" in output:
+            string = "".join(output)
+            string = string.replace("SPACE_TOKEN", " ")
+        else:
+            string = " ".join(output)
+        string = string.replace("CARRIAGE_RETURN", "\n")
         string = string.replace("\'\'", "\"")
         string = string.replace("``", "\"")
         string = string.replace(" .", ".")

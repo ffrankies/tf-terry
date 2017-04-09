@@ -353,6 +353,7 @@ def tokenize_stories(num_examples=None):
     log.info("Replacing spaces with space tokens")
     stories = [story.replace(" ", " %s " % space_token)
                  for story in stories]
+    stories = [story.replace("\n", " %s " % enter) for story in stories]
     stories = [story.replace("\'\'", "\"") for story in stories]
     stories = [story.replace("``", "\"") for story in stories]
     for story in stories:
