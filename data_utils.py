@@ -70,6 +70,8 @@ paragraph_start = "PARAGRAPH_START" # Use split on (\n or \n\n) for this?
 paragraph_end = "PARAGRAPH_END"
 story_start = "STORY_START"
 story_end = "STORY_END"
+space_token = "SPACE_TOKEN"
+enter = "CARRIAGE_RETURN"
 # Dataset parameters
 vocabulary = []
 word_to_index = []
@@ -175,6 +177,16 @@ def tokenize_sentences(num_examples=None):
     global sentence_start
     global sentence_end
     global log
+
+    log.info("Replacing spaces with space tokens")
+    string = string.replace("\'\'", "\"")
+    string = string.replace("``", "\"")
+    sentences = [sentence.replace(" ", " %s " % space_token)
+                 for sentence in sentences]
+    sentences = [sentence.replace("\'\'", "\"") for sentence in sentences]
+    sentences = [sentence.replace("``", "\"") for sentence in sentences]
+    sentences = [sentence if "[" not in sentence for sentence in sentences]
+
 
     log.info("Breaking comments down into sentences.")
     sentences = itertools.chain(
