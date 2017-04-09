@@ -185,8 +185,9 @@ def tokenize_sentences(num_examples=None):
                  for sentence in sentences]
     sentences = [sentence.replace("\'\'", "\"") for sentence in sentences]
     sentences = [sentence.replace("``", "\"") for sentence in sentences]
-    sentences = [sentence if "[" not in sentence for sentence in sentences]
-
+    for sentence in sentences:
+        if "[" in sentence or "]" in sentence:
+            sentences.remove(sentence)
 
     log.info("Breaking comments down into sentences.")
     sentences = itertools.chain(
