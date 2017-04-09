@@ -179,23 +179,22 @@ def tokenize_sentences(num_examples=None):
     global log
     global space_token
 
-    log.info("Replacing spaces with space tokens")
-    for item in sentences:
-        item = item.replace(" ", " %s " % space_token)
-        item = item.replace("\'\'", "\"")
-        item = item.replace("``", "\"")
-
-    print(sentences[:5])
-
-    for sentence in sentences:
-        if "[" in sentence or "]" in sentence:
-            sentences.remove(sentence)
-
     log.info("Breaking comments down into sentences.")
     sentences = itertools.chain(
         *[nltk.sent_tokenize(comment.lower()) for comment in comments])
     sentences = list(sentences)
     log.info("%d sentences found in dataset." % len(sentences))
+
+
+    log.info("Preprocessing sentences")
+    for item in sentences:
+        item = item.replace(" ", " %s " % space_token)
+        item = item.replace("\'\'", "\"")
+        item = item.replace("``", "\"")
+
+    for sentence in sentences:
+        if "[" in sentence or "]" in sentence:
+            sentences.remove(sentence)
 
     if (not num_examples is None) and num_examples < len(sentences):
         log.info("Reducing number of sentences to %d" % num_examples)
@@ -269,7 +268,13 @@ def tokenize_paragraphs(num_examples=None):
     global log
     global space_token
 
-    log.info("Replacing spaces with space tokens")
+    log.info("Breaking comments down into paragraphs.")
+    for comment in comments:
+        paragraphs.extend(re.split('\n+', comment.lower()))
+    log.info("%d comments were broken down into %d paragraphs." %
+             (len(comments), len(paragraphs)))
+
+    log.info("Preprocessing paragraphs.")
     for item in paragraphs:
         item = item.replace(" ", " %s " % space_token)
         item = item.replace("\'\'", "\"")
@@ -278,12 +283,6 @@ def tokenize_paragraphs(num_examples=None):
     for paragraph in paragraphs:
         if "[" in paragraph or "]" in paragraph:
             paragraphs.remove(paragraph)
-
-    log.info("Breaking comments down into paragraphs.")
-    for comment in comments:
-        paragraphs.extend(re.split('\n+', comment.lower()))
-    log.info("%d comments were broken down into %d paragraphs." %
-             (len(comments), len(paragraphs)))
 
     if (not num_examples is None) and num_examples < len(paragraphs):
         log.info("Reducing number of paragraphs to %d" % num_examples)
@@ -358,7 +357,11 @@ def tokenize_stories(num_examples=None):
     global space_token
     global enter
 
-    log.info("Replacing spaces with space tokens")
+    log.info("Retrieving stories from data.")
+    stories = [comment.lower() for comment in comments]
+    log.info("Found %d stories in the dataset." % len(stories))
+
+    log.info("Preprocessing storeis")
     for item in stories:
         item = item.replace("\n", " %s " % enter)
         item = item.replace(" ", " %s " % space_token)
@@ -368,10 +371,6 @@ def tokenize_stories(num_examples=None):
     for story in stories:
         if "[" in story or "]" in story:
             stories.remove(story)
-
-    log.info("Retrieving stories from data.")
-    stories = [comment.lower() for comment in comments]
-    log.info("Found %d stories in the dataset." % len(stories))
 
     if (not num_examples is None) and num_examples < len(stories):
         log.info("Reducing number of stories to %d" % num_examples)
