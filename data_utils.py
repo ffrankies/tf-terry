@@ -177,12 +177,14 @@ def tokenize_sentences(num_examples=None):
     global sentence_start
     global sentence_end
     global log
+    global space_token
 
     log.info("Replacing spaces with space tokens")
-    sentences = [sentence.replace(" ", " %s " % space_token)
-                 for sentence in sentences]
-    sentences = [sentence.replace("\'\'", "\"") for sentence in sentences]
-    sentences = [sentence.replace("``", "\"") for sentence in sentences]
+    for item in sentences:
+        item = item.replace(" ", " %s " % space_token)
+        item = item.replace("\'\'", "\"")
+        item = item.replace("``", "\"")
+
     for sentence in sentences:
         if "[" in sentence or "]" in sentence:
             sentences.remove(sentence)
@@ -263,12 +265,14 @@ def tokenize_paragraphs(num_examples=None):
     global paragraph_start
     global paragraph_end
     global log
+    global space_token
 
     log.info("Replacing spaces with space tokens")
-    paragraphs = [paragraph.replace(" ", " %s " % space_token)
-                 for paragraph in paragraphs]
-    paragraphs = [paragraph.replace("\'\'", "\"") for paragraph in paragraphs]
-    paragraphs = [paragraph.replace("``", "\"") for paragraph in paragraphs]
+    for item in paragraphs:
+        item = item.replace(" ", " %s " % space_token)
+        item = item.replace("\'\'", "\"")
+        item = item.replace("``", "\"")
+
     for paragraph in paragraphs:
         if "[" in paragraph or "]" in paragraph:
             paragraphs.remove(paragraph)
@@ -349,13 +353,16 @@ def tokenize_stories(num_examples=None):
     global story_start
     global story_end
     global log
+    global space_token
+    global enter
 
     log.info("Replacing spaces with space tokens")
-    stories = [story.replace(" ", " %s " % space_token)
-                 for story in stories]
-    stories = [story.replace("\n", " %s " % enter) for story in stories]
-    stories = [story.replace("\'\'", "\"") for story in stories]
-    stories = [story.replace("``", "\"") for story in stories]
+    for item in stories:
+        item = item.replace("\n", " %s " % enter)
+        item = item.replace(" ", " %s " % space_token)
+        item = item.replace("\'\'", "\"")
+        item = item.replace("``", "\"")
+        
     for story in stories:
         if "[" in story or "]" in story:
             stories.remove(story)
