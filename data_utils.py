@@ -179,8 +179,6 @@ def tokenize_sentences(num_examples=None):
     global log
 
     log.info("Replacing spaces with space tokens")
-    string = string.replace("\'\'", "\"")
-    string = string.replace("``", "\"")
     sentences = [sentence.replace(" ", " %s " % space_token)
                  for sentence in sentences]
     sentences = [sentence.replace("\'\'", "\"") for sentence in sentences]
