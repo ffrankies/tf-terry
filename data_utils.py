@@ -233,7 +233,7 @@ def create_sentence_dataset(vocab_size=8000):
     total = 0
     for word in vocabulary:
         total += word_freq.freq(word[0])
-    log.info("Percent of total words captured: " % total * 100)
+    log.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(unknown)
@@ -319,7 +319,7 @@ def create_paragraph_dataset(vocab_size=8000):
     total = 0
     for word in vocabulary:
         total += word_freq.freq(word[0])
-    log.info("Percent of total words captured: " % total * 100)
+    log.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(unknown)
