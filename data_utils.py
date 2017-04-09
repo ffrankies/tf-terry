@@ -185,6 +185,8 @@ def tokenize_sentences(num_examples=None):
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
 
+    print(sentences[:5])
+
     for sentence in sentences:
         if "[" in sentence or "]" in sentence:
             sentences.remove(sentence)
@@ -362,7 +364,7 @@ def tokenize_stories(num_examples=None):
         item = item.replace(" ", " %s " % space_token)
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
-        
+
     for story in stories:
         if "[" in story or "]" in story:
             stories.remove(story)
