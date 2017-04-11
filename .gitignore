@@ -89,7 +89,6 @@ ENV/
 .ropeproject
 
 # Other
-results/
 .extra_stuff
 grurnn/
 app/
