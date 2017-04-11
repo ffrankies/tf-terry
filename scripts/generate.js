@@ -68,17 +68,17 @@ document.addEventListener("readystatechange", function() {
 
         sentenceButton.onclick = function() {
             console.log("Sentence requested.");
-            sendRequest("/results/f_sentences.txt", sentenceBox);
+            sendRequest("./results/f_sentences.txt", sentenceBox);
         };
 
         paragraphButton.onclick = function() {
             console.log("Paragraph requested.");
-            sendRequest("/results/f_paragraphs.txt", paragraphBox);
+            sendRequest("./results/f_paragraphs.txt", paragraphBox);
         };
 
         storyButton.onclick = function() {
             console.log("Story requested.");
-            sendRequest("/results/f_stories.txt", storyBox);
+            sendRequest("./results/f_stories.txt", storyBox);
         };
 
     }
