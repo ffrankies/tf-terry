@@ -58,6 +58,7 @@ h2 {
     box-sizing: border-box;
     background-color: #FFFAEE;
     margin: 3vh 10vw 3vh 10vw;
+    padding-bottom: 2vh;
     border-radius: 20px;
 }
 
@@ -99,7 +100,7 @@ h2 {
     font-size: 4vh;
     line-height: 4vh;
     box-sizing: border-box;
-    color: #F4A460;
+    color: black;
 }
 
 #footerrow {
