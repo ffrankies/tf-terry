@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 16 July, 2017
+Date: 17 July, 2017
 """
 
 #########################################################################################
@@ -19,3 +19,5 @@ Date: 16 July, 2017
 from utils import setup
 
 args = setup.parse_arguments()
+
+# TO-DO: import data here

@@ -3,7 +3,7 @@ Utility class for setting up an RNN.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 16 July, 2017
+Date: 17 July, 2017
 """
 
 # Specify documentation format
@@ -11,6 +11,8 @@ __docformat__ = 'restructedtext en'
 
 import argparse
 import logging
+
+from . import constants
 
 def parse_arguments():
     """
@@ -32,18 +34,18 @@ def __add_log_arguments__(parser):
     """
     Adds arguments for setting up the logger to the given argument parser.
     Arguments added:
-    --logger-name
-    --log-filename
-    --log-dir
+    --logger_name
+    --log_filename
+    --log_dir
 
     :type parser: argparse.ArgumentParser
     :param parser: The argument parser to which to add the logger arguments.
     """
-    parser.add_argument("-ln", "--logger-name", default="TEST",
-                        help="The name of the logger to be used. Defaults to 'TEST'")
-    parser.add_argument("-lf", "--log-filename", default="terry.log",
+    parser.add_argument("-ln", "--logger_name", default=constants.LOG_NAME,
+                        help="The name of the logger to be used. Defaults to %s" % constants.LOG_NAME)
+    parser.add_argument("-lf", "--log_filename", default="terry.log",
                         help="The name of the file to which the logging will be done.")
-    parser.add_argument("-ld", "--log-dir", default="./logging",
+    parser.add_argument("-ld", "--log_dir", default="./logging",
                         help="The path to the directory where the log file will be stored.")
 # End of __add_log_arguments__()
 
@@ -52,8 +54,8 @@ def __add_rnn_arguments__(parser):
     Adds arguments for setting up an RNN to the given argument parser.
     Arguments added:
     --dataset
-    --hidden-size
-    --embed-size
+    --hidden_size
+    --embed_size
     --model
 
     :type parser: argparse.ArgumentParser
@@ -100,9 +102,29 @@ def __add_train_arguments__(parser):
                         help="The backpropagate truncate value.")
 # End of __add_train_arguments__()
 
-def setup_logger():
+def setup_logger(args):
     """
     Sets up a logger
+
+    :type args: Namespace object.
+    :param args: The namespace containing command-line arguments entered (or their default values).
     """
-    logger = logging.logger()
+    logger = logging.getLogger(args.logger_name)
+    testlog.setLevel(logging.info)
+
+    # Logger will use up to 5 files for logging, 'rotating' the data between them as they get filled up.
+    handler = logging.handlers.RotatingFileHandler(
+        filename=args.log_dir + log_filename,
+        maxBytes=1024*512,
+        backupCount=5
+    )
+
+    formatter = logging.Formatter(
+        "%(asctime)s-%(name)s-%(levelname)s-%(message)s"
+    )
+
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.info("Running a new GRU-RNN with logging")
 # End of setup_logger
