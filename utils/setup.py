@@ -11,6 +11,9 @@ __docformat__ = 'restructedtext en'
 
 import argparse
 import logging
+import logging.handlers
+import os
+import sys
 
 from . import constants
 
@@ -102,6 +105,24 @@ def __add_train_arguments__(parser):
                         help="The backpropagate truncate value.")
 # End of __add_train_arguments__()
 
+def create_dir(dirPath):
+    """
+    Creates a directory if it does not exist.
+
+    :type dirPath: string
+    :param dirPath: the path of the directory to be created.
+    """
+    try:
+        if os.path.dirname(dirPath) != "":
+            os.makedirs(os.path.dirname(dirPath), exist_ok=True) # Python 3.2+
+    except TypeError:
+        try: # Python 3.2-
+            os.makedirs(dirPath)
+        except OSError as exception:
+            if exception.errno != 17:
+                raise
+# End of create_dir()
+
 def setup_logger(args):
     """
     Sets up a logger
@@ -110,11 +131,13 @@ def setup_logger(args):
     :param args: The namespace containing command-line arguments entered (or their default values).
     """
     logger = logging.getLogger(args.logger_name)
-    testlog.setLevel(logging.info)
+    logger.setLevel(logging.INFO)
+
+    create_dir(args.log_dir)
 
     # Logger will use up to 5 files for logging, 'rotating' the data between them as they get filled up.
     handler = logging.handlers.RotatingFileHandler(
-        filename=args.log_dir + log_filename,
+        filename=args.log_dir + '/' + args.log_filename,
         maxBytes=1024*512,
         backupCount=5
     )
@@ -126,5 +149,6 @@ def setup_logger(args):
     handler.setFormatter(formatter)
 
     logger.addHandler(handler)
-    logger.info("Running a new GRU-RNN with logging")
+    logger.info("Logger successfully set up.")
+    return logger
 # End of setup_logger

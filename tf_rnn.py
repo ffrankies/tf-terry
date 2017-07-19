@@ -17,7 +17,11 @@ Date: 17 July, 2017
 # A simple RNN based on https://www.tensorflow.org/tutorials/recurrent
 ########################################################################################
 from utils import setup
+from utils.rnn import RNN
 
-args = setup.parse_arguments()
+settings = setup.parse_arguments()
 
 # TO-DO: import data here
+
+# RNN code here
+rnn = RNN(settings)
