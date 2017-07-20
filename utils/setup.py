@@ -48,7 +48,7 @@ def __add_log_arguments__(parser):
                         help="The name of the logger to be used. Defaults to %s" % constants.LOG_NAME)
     parser.add_argument("-lf", "--log_filename", default="terry.log",
                         help="The name of the file to which the logging will be done.")
-    parser.add_argument("-ld", "--log_dir", default="./logging",
+    parser.add_argument("-ld", "--log_dir", default="./logging/",
                         help="The path to the directory where the log file will be stored.")
 # End of __add_log_arguments__()
 
