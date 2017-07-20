@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 18 July, 2017
+Date: 19 July, 2017
 """
 
 import numpy
@@ -41,3 +41,10 @@ class RNN(object):
         Initial pseudocode for training the model.
         """
         lstm = tf.contrib.rnn.BasicLSTMCell(self.settings.hidden_size)
+        batch_size = 1 # My data isn't broken up into batches yet :( Gotta do that, then make this a param.
+        state_size = 5 # Size of lstm state... I'm assuming sequence length?
+        state = tf.zeros([batch_size, state_size])
+        probabilities = []
+        loss = 0.0
+        # Actual training data in here
+    # End of train()

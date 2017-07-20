@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 24 March, 2017
+Date: 19 Jul, 2017
 """
 
 ###############################################################################
@@ -29,7 +29,7 @@ Date: 24 March, 2017
 #   the output for training, in tokenized format (as indexes)
 #
 # Author: Frank Wanye
-# Date: 24 March, 2017
+# Date: 19 July, 2017
 ###############################################################################
 
 # Specify documentation format
@@ -51,6 +51,8 @@ import logging
 import logging.handlers
 import argparse
 import time
+from . import setup
+from . import constants
 
 ###############################################################################
 # Setting up global variables
@@ -78,55 +80,6 @@ word_to_index = []
 index_to_word = []
 x_train = []
 y_train = []
-
-def createDir(dirPath):
-    """
-    Creates a directory if it does not exist.
-
-    :type dirPath: string
-    :param dirPath: the path of the directory to be created.
-    """
-    try:
-        os.makedirs(dirPath, exist_ok=True) # Python 3.2+
-    except TypeError:
-        try: # Python 3.2-
-            os.makedirs(dirPath)
-        except OSError as exception:
-            if exception.errno != 17:
-                raise
-# End of createDir()
-
-def set_up_logging(name='DATA', dir='logging'):
-    """
-    Sets up logging for the data formatting.
-
-    :type name: String
-    :param name: the name of the logger. Defaults to 'DATA'
-
-    :type dir: String
-    :param dir: the directory in which the logging will be done. Defaults to
-                'logging'
-    """
-    createDir(dir) # Create log directory in system if it isn't already there
-    global log
-    log = logging.getLogger(name)
-    log.setLevel(logging.INFO)
-
-    handler = logging.handlers.RotatingFileHandler(
-        filename=dir+"/data.log",
-        maxBytes=1024*512,
-        backupCount=5
-    )
-
-    formatter = logging.Formatter(
-        "%(asctime)s-%(name)s-%(levelname)s-%(message)s"
-    )
-
-    handler.setFormatter(formatter)
-
-    log.addHandler(handler)
-    log.info("Set up logging for data formatting session.")
-# End of set_up_logging()
 
 def read_csv(path=None, max=None):
     """
@@ -455,7 +408,7 @@ def save_dataset(path=None, filename=None):
         name = input("Enter the name of the file the dataset should be"
                      " saved as: ")
 
-    createDir(path)
+    setup.create_dir(path)
     with open(path + "/" + filename, "wb") as dataset_file:
         cPickle.dump((vocabulary, index_to_word, word_to_index, x_train,
                      y_train), dataset_file, protocol=2)

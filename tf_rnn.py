@@ -25,3 +25,4 @@ settings = setup.parse_arguments()
 
 # RNN code here
 rnn = RNN(settings)
+rnn.train()
