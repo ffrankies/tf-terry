@@ -10,7 +10,7 @@ https://goo.gl/DPf37h
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 19 Jul, 2017
+Date: 22 Jul, 2017
 """
 
 ###############################################################################
@@ -64,16 +64,6 @@ sentences = [] # Holds the sentences from the comments
 paragraphs = [] # Holds the paragraphs from the comments
 stories = [] # Holds the stories
 vocab_size = 0 # Number of words RNN wil remember
-# Special tokens
-unknown = "UNKNOWN_TOKEN"
-sentence_start = "SENTENCE_START"
-sentence_end = "SENTENCE_END"
-paragraph_start = "PARAGRAPH_START" # Use split on (\n or \n\n) for this?
-paragraph_end = "PARAGRAPH_END"
-story_start = "STORY_START"
-story_end = "STORY_END"
-space_token = "SPACE_TOKEN"
-enter = "CARRIAGE_RETURN"
 # Dataset parameters
 vocabulary = []
 word_to_index = []
@@ -127,10 +117,7 @@ def tokenize_sentences(num_examples=None):
     """
     global sentences
     global comments
-    global sentence_start
-    global sentence_end
     global log
-    global space_token
 
     log.info("Breaking comments down into sentences.")
     sentences = itertools.chain(
@@ -141,7 +128,7 @@ def tokenize_sentences(num_examples=None):
     log.info("Preprocessing sentences")
     sents = []
     for item in sentences:
-        item = item.replace(" ", " %s " % space_token)
+        item = item.replace(" ", " %s " % constants.SPACE)
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
         sents.append(item)
@@ -156,7 +143,7 @@ def tokenize_sentences(num_examples=None):
         sentences = sentences[:num_examples]
 
     log.info("Adding sentence start and end tokens to sentences.")
-    sentences = ["%s %s %s" % (sentence_start, sentence, sentence_end)
+    sentences = ["%s %s %s" % (constants.SENT_START, sentence, constants.SENT_END)
                  for sentence in sentences]
 
     log.info("Tokenizing words in sentences.")
@@ -177,7 +164,6 @@ def create_sentence_dataset(vocab_size=8000):
     global sentences
     global index_to_word
     global word_to_index
-    global unknown
     global x_train
     global y_train
 
@@ -194,14 +180,14 @@ def create_sentence_dataset(vocab_size=8000):
     log.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
-    index_to_word.append(unknown)
+    index_to_word.append(constants.UNKNOWN)
     word_to_index = dict((word, index)
                         for index, word in enumerate(index_to_word))
 
     log.info("Replace all words not in vocabulary with unkown token.")
     for index, sentence in enumerate(sentences):
         sentences[index] = [word if word in word_to_index
-                            else unknown for word in sentence]
+                            else constants.UNKNOWN for word in sentence]
 
     log.info("Creating training data.")
     x_train = np.asarray([[word_to_index[word] for word in sentence[:-1]]
@@ -218,10 +204,7 @@ def tokenize_paragraphs(num_examples=None):
     """
     global paragraphs
     global comments
-    global paragraph_start
-    global paragraph_end
     global log
-    global space_token
 
     log.info("Breaking comments down into paragraphs.")
     for comment in comments:
@@ -231,7 +214,7 @@ def tokenize_paragraphs(num_examples=None):
 
     log.info("Preprocessing paragraphs.")
     for item in paragraphs:
-        item = item.replace(" ", " %s " % space_token)
+        item = item.replace(" ", " %s " % constants.SPACE)
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
 
@@ -244,7 +227,7 @@ def tokenize_paragraphs(num_examples=None):
         paragraphs = paragraphs[:num_examples]
 
     log.info("Adding paragraph start and end tokens to paragraphs.")
-    paragraphs = ["%s %s %s" % (paragraph_start, paragraph, paragraph_end)
+    paragraphs = ["%s %s %s" % (constants.PARA_START, paragraph, constants.PARA_END)
                  for paragraph in paragraphs]
 
     log.info("Tokenizing words in paragraphs.")
@@ -265,7 +248,6 @@ def create_paragraph_dataset(vocab_size=8000):
     global paragraphs
     global index_to_word
     global word_to_index
-    global unknown
     global x_train
     global y_train
 
@@ -282,14 +264,14 @@ def create_paragraph_dataset(vocab_size=8000):
     log.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
-    index_to_word.append(unknown)
+    index_to_word.append(constants.UNKNOWN)
     word_to_index = dict((word, index)
                         for index, word in enumerate(index_to_word))
 
     log.info("Replace all words not in vocabulary with unkown token.")
     for index, paragraph in enumerate(paragraphs):
         paragraphs[index] = [word if word in word_to_index
-                            else unknown for word in paragraph]
+                            else constants.UNKNOWN for word in paragraph]
 
     log.info("Creating training data.")
     x_train = np.asarray([[word_to_index[word] for word in paragraph[:-1]]
@@ -306,11 +288,7 @@ def tokenize_stories(num_examples=None):
     """
     global stories
     global comments
-    global story_start
-    global story_end
     global log
-    global space_token
-    global enter
 
     log.info("Retrieving stories from data.")
     stories = [comment.lower() for comment in comments]
@@ -318,8 +296,8 @@ def tokenize_stories(num_examples=None):
 
     log.info("Preprocessing storeis")
     for item in stories:
-        item = item.replace("\n", " %s " % enter)
-        item = item.replace(" ", " %s " % space_token)
+        item = item.replace("\n", " %s " % constants.CARRIAGE_RETURN)
+        item = item.replace(" ", " %s " % constants.SPACE)
         item = item.replace("\'\'", "\"")
         item = item.replace("``", "\"")
 
@@ -332,7 +310,7 @@ def tokenize_stories(num_examples=None):
         stories = stories[:num_examples]
 
     log.info("Adding story start and end tokens to stories.")
-    stories = ["%s %s %s" % (story_start, story, story_end)
+    stories = ["%s %s %s" % (constants.STORY_START, story, constants.STORY_END)
                  for story in stories]
 
     log.info("Tokenizing words in stories.")
@@ -353,7 +331,6 @@ def create_story_dataset(vocab_size=8000):
     global stories
     global index_to_word
     global word_to_index
-    global unknown
     global x_train
     global y_train
 
@@ -372,14 +349,14 @@ def create_story_dataset(vocab_size=8000):
     log.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
-    index_to_word.append(unknown)
+    index_to_word.append(constants.UNKNOWN)
     word_to_index = dict((word, index)
                         for index, word in enumerate(index_to_word))
 
     log.info("Replace all words not in vocabulary with unkown token.")
     for index, story in enumerate(stories):
         stories[index] = [word if word in word_to_index
-                            else unknown for word in story]
+                            else constants.UNKNOWN for word in story]
 
     log.info("Creating training data.")
     x_train = np.asarray([[word_to_index[word] for word in story[:-1]]
