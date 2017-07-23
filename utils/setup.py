@@ -123,6 +123,37 @@ def create_dir(dirPath):
                 raise
 # End of create_dir()
 
+def get_arg(settings, argument, asInt=False, asBoolean=False, asFloat=False, checkNone=False):
+    """
+    Retrieves the argument from the given settings namespace, or asks the user to enter one.
+
+    :type settings: argparse.Namespace() object
+    :param settings: The parsed command-line arguments to the program.
+
+    :type argument: String
+    :param argument: the argument to retrieve from the settings.
+
+    :type return: Any
+    :param return: The value of the returned setting.
+    """
+    arg = None
+    if argument in settings:
+        arg = vars(settings)[argument]
+    if checkNone:
+        if arg == None:
+            arg = input("Specify the value for %s" % argument)
+    if asInt:
+        arg = int(arg)
+    if asBoolean:
+        if arg.lower() == 'true' or arg.lower() == 't':
+            arg = True
+        if arg.lower() == 'false' or arg.lower() == 'f':
+            arg = False
+    if asFloat:
+        arg = float(arg)
+    return arg
+# End of get_arg()
+
 def setup_logger(args):
     """
     Sets up a logger
