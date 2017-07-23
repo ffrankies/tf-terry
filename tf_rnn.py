@@ -18,6 +18,7 @@ Date: 17 July, 2017
 ########################################################################################
 from utils import setup
 from utils.rnn import RNN
+from utils import datasets
 
 settings = setup.parse_arguments()
 
