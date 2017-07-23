@@ -20,10 +20,16 @@ from utils import setup
 from utils.rnn import RNN
 from utils import datasets
 
-settings = setup.parse_arguments()
+# settings = setup.parse_arguments()
+#
+# # TO-DO: import data here
+#
+# # RNN code here
+# rnn = RNN(settings)
+# rnn.train()
 
-# TO-DO: import data here
-
-# RNN code here
-rnn = RNN(settings)
-rnn.train()
+if __name__ == "__main__":
+    settings = setup.parse_arguments()
+    rnn = RNN(settings)
+    rnn.train()
+    rnn.generate_output()

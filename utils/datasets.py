@@ -68,7 +68,7 @@ def read_csv(logger, settings):
     :type return: List of Strings
     :param return: A List of comments to be converted into sentences, etc.
     """
-    path = setup.get_arg(settings, 'source_path', checkNone=True)
+    path = setup.get_arg(settings, 'raw_data_path', checkNone=True)
 
     # Encoding breaks when using python2.7 for some reason.
     comments = []
@@ -295,8 +295,8 @@ def save_dataset(logger, settings):
     :type settings: argparse.Namespace
     :param settings: the parse command-lien options to the program.
     """
-    path = setup.get_arg(settings, 'dest_path', checkNone=True)
-    filename = setup.get_arg(settings, 'dest_name', checkNone = True)
+    path = setup.get_arg(settings, 'saved_dataset_path', checkNone=True)
+    filename = setup.get_arg(settings, 'saved_dataset_name', checkNone = True)
 
     setup.create_dir(path)
     with open(path + "/" + filename, "wb") as dataset_file:
@@ -305,16 +305,19 @@ def save_dataset(logger, settings):
 
 def load_dataset(logger, settings):
     """
-    Loads a saved dataset so that it can be checked for correctness.
+    Loads a saved dataset..
 
     :type logger: logging.Logger
     :param logger: the logger to be used for logging
 
     :type settings: argparse.Namespace
     :param settings: the parse command-lien options to the program.
+
+    :type return: A tuple
+    :param return: (vocabulary, index_to_word, word_to_index, x_train, y_train)
     """
-    dataset_path = setup.get_arg(settings, 'dest_path', checkNone=True)
-    dataset_name = setup.get_arg(settings, 'dest_name', checkNone=True)
+    dataset_path = setup.get_arg(settings, 'saved_dataset_path', checkNone=True)
+    dataset_name = setup.get_arg(settings, 'saved_dataset_name', checkNone=True)
     path = dataset_path + '/' + dataset_name
 
     logger.info("Loading saved dataset.")
@@ -330,8 +333,8 @@ def load_dataset(logger, settings):
         logger.info("Some words from vocabulary: %s" % index_to_word[:100])
         logger.info("Number of examples: %d" % len(x_train))
         logger.info("Sample training data: %s\n%s" % (x_train[:10], y_train[:10]))
-
-        return data
+    # End with
+    return data
 # End of load_dataset()
 
 def parse_arguments():
@@ -343,21 +346,13 @@ def parse_arguments():
     """
     arg_parse = argparse.ArgumentParser()
     setup.__add_log_arguments__(arg_parse)
+    setup.__add_dataset_arguments__(arg_parse)
     arg_parse.add_argument("-v", "--vocab_size", default=8000, type=int,
                            help="The size of the dataset vocabulary.")
     arg_parse.add_argument("-c", "--num_comments", type=int,
                            help="The number of comments to be read.")
     arg_parse.add_argument("-n", "--num_examples", type=int,
                            help="The number of sentence examples to be saved.")
-    arg_parse.add_argument("-s", "--source_path",
-                           help="The path to the existing data.")
-    arg_parse.add_argument("-d", "--dest_path",
-                           help="The destination path for the dataset.")
-    arg_parse.add_argument("-f", "--dest_name",
-                           help="The name of the dataset file.")
-    arg_parse.add_argument("-t", "--source_type", default="csv",
-                           help="The type of source data [currently only "
-                                "the csv data size is supported].")
     arg_parse.add_argument("-e", "--test", action="store_true",
                            help="Specify if this is just a test run.")
     arg_parse.add_argument("-m", "--mode", default='sentences',

@@ -30,6 +30,7 @@ def parse_arguments():
     __add_log_arguments__(arg_parse)
     __add_rnn_arguments__(arg_parse)
     __add_train_arguments__(arg_parse)
+    __add_dataset_arguments__(arg_parse)
     return arg_parse.parse_args()
 # End of parse_arguments()
 
@@ -104,6 +105,28 @@ def __add_train_arguments__(parser):
     parser.add_argument("-r", "--truncate", type=int, default=100,
                         help="The backpropagate truncate value.")
 # End of __add_train_arguments__()
+
+def __add_dataset_arguments__(parser):
+    """
+    Adds arguments for training an RNN to the given argument parser.
+    Arguments added:
+    --raw_data_path
+    --saved_dataset_path
+    --saved_dataset_name
+    --source_type
+
+    :type parser: argparse.ArgumentParser
+    :param parser: The argument parser to which to add the logger arguments.
+    """
+    parser.add_argument("-rdp", "--raw_data_path", default="./raw_data/stories.csv",
+                        help="The path to the existing data.")
+    parser.add_argument("-sdp", "--saved_dataset_path", default="./datasets",
+                        help="The directory for the saved dataset.")
+    parser.add_argument("-sdn", "--saved_dataset_name", default="test.pkl",
+                        help="The name of the saved dataset.")
+    parser.add_argument("-st", "--source_type", default="csv",
+                        help="The type of source data [currently only the csv data size is supported].")
+# End of __add_dataset_arguments__()
 
 def create_dir(dirPath):
     """
