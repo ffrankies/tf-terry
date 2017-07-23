@@ -54,34 +54,21 @@ import time
 from . import setup
 from . import constants
 
-###############################################################################
-# Setting up global variables
-###############################################################################
-timestr = time.strftime("%d%m%y%H") # For when current time is needed
-sentences = [] # Holds the sentences from the comments
-paragraphs = [] # Holds the paragraphs from the comments
-stories = [] # Holds the stories
-vocab_size = 0 # Number of words RNN wil remember
-# Dataset parameters
-vocabulary = []
-word_to_index = []
-index_to_word = []
-x_train = []
-y_train = []
-
-def read_csv(logger, path=None, max=None):
+def read_csv(logger, settings):
     """
     Reads the given csv file and extracts data from it into the comments array.
     Empty data cells are not included in the output.
 
-    :type path: String
-    :param path: the path to the csv data file
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
 
-    :return type: List of Strings
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+
+    :type return: List of Strings
     :param return: A List of comments to be converted into sentences, etc.
     """
-    if path is None:
-        path = input("Enter path to the scv data file: ")
+    path = setup.get_arg(settings, 'source_path', checkNone=True)
 
     # Encoding breaks when using python2.7 for some reason.
     comments = []
@@ -108,18 +95,26 @@ def read_csv(logger, path=None, max=None):
     return comments
 # End of read_csv()
 
-def tokenize_sentences(logger, num_examples=None):
+def tokenize_sentences(logger, settings):
     """
     Uses the nltk library to break comments down into sentences, and then
     tokenizes the words in the sentences. Also appends the sentence start and
     end tokens to each sentence.
 
-    :return type: List of Strings
-    :param return: A list of sentence strings
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
+
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+
+    :type return: List of Strings
+    :param return: A list of tokenized sentence strings
     """
+    num_examples = setup.get_arg(settings, 'num_examples', asInt=True)
+    comments = read_csv(logger, settings)
+
     logger.info("Breaking comments down into sentences.")
-    sentences = itertools.chain(
-        *[nltk.sent_tokenize(comment.lower()) for comment in comments])
+    sentences = itertools.chain(*[nltk.sent_tokenize(comment.lower()) for comment in comments])
     sentences = list(sentences)
     logger.info("%d sentences found in dataset." % len(sentences))
 
@@ -141,8 +136,7 @@ def tokenize_sentences(logger, num_examples=None):
         sentences = sentences[:num_examples]
 
     logger.info("Adding sentence start and end tokens to sentences.")
-    sentences = ["%s %s %s" % (constants.SENT_START, sentence, constants.SENT_END)
-                 for sentence in sentences]
+    sentences = ["%s %s %s" % (constants.SENT_START, sentence, constants.SENT_END) for sentence in sentences]
 
     logger.info("Tokenizing words in sentences.")
     sentences = [nltk.word_tokenize(sentence) for sentence in sentences]
@@ -150,64 +144,28 @@ def tokenize_sentences(logger, num_examples=None):
     return sentences
 # End of tokenize_sentences()
 
-def create_sentence_dataset(logger, vocab_size=8000):
-    """
-    Creates a dataset using the tokenized sentences.
-
-    :type vocab_size: int
-    :param vocab_size: the size of the vocabulary for this dataset. Defaults to
-                       8000
-    """
-    global vocabulary
-    global sentences
-    global index_to_word
-    global word_to_index
-    global x_train
-    global y_train
-
-    logger.info("Obtaining word frequency disribution.")
-    word_freq = nltk.FreqDist(itertools.chain(*sentences))
-    logger.info("Found %d unique words." % len(word_freq.items()))
-
-    vocabulary = word_freq.most_common(vocab_size - 1)
-
-    logger.info("Calculating percent of words captured...")
-    total = 0
-    for word in vocabulary:
-        total += word_freq.freq(word[0])
-    logger.info("Percent of total words captured: %f" % total * 100)
-
-    index_to_word = [word[0] for word in vocabulary]
-    index_to_word.append(constants.UNKNOWN)
-    word_to_index = dict((word, index)
-                        for index, word in enumerate(index_to_word))
-
-    logger.info("Replace all words not in vocabulary with unkown token.")
-    for index, sentence in enumerate(sentences):
-        sentences[index] = [word if word in word_to_index
-                            else constants.UNKNOWN for word in sentence]
-
-    logger.info("Creating training data.")
-    x_train = np.asarray([[word_to_index[word] for word in sentence[:-1]]
-                         for sentence in sentences])
-    y_train = np.asarray([[word_to_index[word] for word in sentence[1:]]
-                         for sentence in sentences])
-# End of create_dataset()
-
-def tokenize_paragraphs(logger, num_examples=None):
+def tokenize_paragraphs(logger, settings):
     """
     Uses the nltk library to break comments down into paragraphs, and then
-    tokenizes the words in the sentences. Also appends the paragraph start and
+    tokenizes the words in the paragraphs. Also appends the paragraph start and
     end tokens to each paragraph.
+
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
+
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+
+    :type return: List of Strings
+    :param return: A list of tokenized paragraph strings
     """
-    global paragraphs
-    global comments
+    num_examples = setup.get_arg(settings, 'num_examples', asInt=True)
+    comments = read_csv(logger, settings)
 
     logger.info("Breaking comments down into paragraphs.")
     for comment in comments:
         paragraphs.extend(re.split('\n+', comment.lower()))
-    logger.info("%d comments were broken down into %d paragraphs." %
-             (len(comments), len(paragraphs)))
+    logger.info("%d comments were broken down into %d paragraphs." % (len(comments), len(paragraphs)))
 
     logger.info("Preprocessing paragraphs.")
     for item in paragraphs:
@@ -224,66 +182,31 @@ def tokenize_paragraphs(logger, num_examples=None):
         paragraphs = paragraphs[:num_examples]
 
     logger.info("Adding paragraph start and end tokens to paragraphs.")
-    paragraphs = ["%s %s %s" % (constants.PARA_START, paragraph, constants.PARA_END)
-                 for paragraph in paragraphs]
+    paragraphs = ["%s %s %s" % (constants.PARA_START, paragraph, constants.PARA_END) for paragraph in paragraphs]
 
     logger.info("Tokenizing words in paragraphs.")
     paragraphs = [nltk.word_tokenize(paragraph) for paragraph in paragraphs]
     paragraphs = list(paragraphs)
+    return paragraphs
 # End of tokenize_paragraphs()
 
-def create_paragraph_dataset(logger, vocab_size=8000):
-    """
-    Creates a dataset using the tokenized paragraphs.
-
-    :type vocab_size: int
-    :param vocab_size: the size of the vocabulary for this dataset. Defaults to
-                       8000
-    """
-    global vocabulary
-    global paragraphs
-    global index_to_word
-    global word_to_index
-    global x_train
-    global y_train
-
-    logger.info("Obtaining word frequency disribution.")
-    word_freq = nltk.FreqDist(itertools.chain(*paragraphs))
-    logger.info("Found %d unique words." % len(word_freq.items()))
-
-    vocabulary = word_freq.most_common(vocab_size - 1)
-
-    logger.info("Calculating percent of words captured...")
-    total = 0
-    for word in vocabulary:
-        total += word_freq.freq(word[0])
-    logger.info("Percent of total words captured: %f" % total * 100)
-
-    index_to_word = [word[0] for word in vocabulary]
-    index_to_word.append(constants.UNKNOWN)
-    word_to_index = dict((word, index)
-                        for index, word in enumerate(index_to_word))
-
-    logger.info("Replace all words not in vocabulary with unkown token.")
-    for index, paragraph in enumerate(paragraphs):
-        paragraphs[index] = [word if word in word_to_index
-                            else constants.UNKNOWN for word in paragraph]
-
-    logger.info("Creating training data.")
-    x_train = np.asarray([[word_to_index[word] for word in paragraph[:-1]]
-                         for paragraph in paragraphs])
-    y_train = np.asarray([[word_to_index[word] for word in paragraph[1:]]
-                         for paragraph in paragraphs])
-# End of create_paragraph_dataset()
-
-def tokenize_stories(logger, num_examples=None):
+def tokenize_stories(logger, settings):
     """
     Uses the nltk library to word tokenize entire comments, assuming that
     each comment is its own story. Also appends the story start and end tokens
     to each story.
+
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
+
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+
+    :type return: List of Strings
+    :param return: A list of tokenized paragraph strings
     """
-    global stories
-    global comments
+    num_examples = setup.get_arg(settings, 'num_examples', asInt=True)
+    comments = read_csv(logger, settings)
 
     logger.info("Retrieving stories from data.")
     stories = [comment.lower() for comment in comments]
@@ -305,95 +228,94 @@ def tokenize_stories(logger, num_examples=None):
         stories = stories[:num_examples]
 
     logger.info("Adding story start and end tokens to stories.")
-    stories = ["%s %s %s" % (constants.STORY_START, story, constants.STORY_END)
-                 for story in stories]
+    stories = ["%s %s %s" % (constants.STORY_START, story, constants.STORY_END) for story in stories]
 
     logger.info("Tokenizing words in stories.")
     stories = [nltk.word_tokenize(story) for story in stories]
     stories = list(stories)
+    return stories
 # End of tokenize_stories()
 
-def create_story_dataset(logger, vocab_size=8000):
+def create_dataset(logger, settings):
     """
-    Creates a dataset using the tokenized stories.
+    Creates a dataset using the tokenized data.
 
-    :type vocab_size: int
-    :param vocab_size: the size of the vocabulary for this dataset. Defaults to
-                       8000
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
+
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+
+    :type return: tuple
+    :param return: (vocabulary as List, index_to_word as List, word_to_index as Dict, x_train as List, y_train as List)
     """
-    global vocabulary
-    global stories
-    global index_to_word
-    global word_to_index
-    global x_train
-    global y_train
+    mode = setup.get_arg(settings, 'mode', checkNone=True)
+    vocab_size = setup.get_arg(settings, 'vocab_size', asInt=True, checkNone=True)
+    if mode == 'sentences':
+        data = tokenize_sentences(logger, settings)
+    if mode == 'paragraphs':
+        data = tokenize_paragraphs(logger, settings)
+    if mode == 'stories':
+        data = tokenize_stories(logger, settings)
 
     logger.info("Obtaining word frequency disribution.")
-    word_freq = nltk.FreqDist(itertools.chain(*stories))
+    word_freq = nltk.FreqDist(itertools.chain(*data))
     logger.info("Found %d unique words." % len(word_freq.items()))
 
     vocabulary = word_freq.most_common(vocab_size - 1)
 
     logger.info("Calculating percent of words captured...")
     total = 0
-
     for word in vocabulary:
         total += word_freq.freq(word[0])
-
     logger.info("Percent of total words captured: %f" % total * 100)
 
     index_to_word = [word[0] for word in vocabulary]
     index_to_word.append(constants.UNKNOWN)
-    word_to_index = dict((word, index)
-                        for index, word in enumerate(index_to_word))
+    word_to_index = dict((word, index) for index, word in enumerate(index_to_word))
 
     logger.info("Replace all words not in vocabulary with unkown token.")
-    for index, story in enumerate(stories):
-        stories[index] = [word if word in word_to_index
-                            else constants.UNKNOWN for word in story]
+    for index, sentence in enumerate(data):
+        data[index] = [word if word in word_to_index else constants.UNKNOWN for word in sentence]
 
     logger.info("Creating training data.")
-    x_train = np.asarray([[word_to_index[word] for word in story[:-1]]
-                         for story in stories])
-    y_train = np.asarray([[word_to_index[word] for word in story[1:]]
-                         for story in stories])
-# End of create_story_dataset()
+    x_train = np.asarray([[word_to_index[word] for word in item[:-1]] for item in data])
+    y_train = np.asarray([[word_to_index[word] for word in item[1:]] for item in data])
 
-def save_dataset(path=None, filename=None):
+    return (vocabulary, index_to_word, word_to_index, x_train, y_train)
+# End of create_dataset()
+
+def save_dataset(logger, settings):
     """
     Saves the created dataset to a specified file.
 
-    :type path: string
-    :param path: the path to the saved dataset file.
-    """
-    global x_train
-    global y_train
-    global index_to_word
-    global word_to_index
-    global vocabulary
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
 
-    if path is None:
-        path = input("Enter the path to the file where the dataset will"
-                     " be stored: ")
-    if filename is None:
-        name = input("Enter the name of the file the dataset should be"
-                     " saved as: ")
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
+    """
+    path = setup.get_arg(settings, 'dest_path', checkNone=True)
+    filename = setup.get_arg(settings, 'dest_name', checkNone = True)
 
     setup.create_dir(path)
     with open(path + "/" + filename, "wb") as dataset_file:
-        cPickle.dump((vocabulary, index_to_word, word_to_index, x_train,
-                     y_train), dataset_file, protocol=2)
+        cPickle.dump(create_dataset(logger, settings), dataset_file, protocol=2)
 # End of save_dataset()
 
-def load_dataset(logger, path=None):
+def load_dataset(logger, settings):
     """
     Loads a saved dataset so that it can be checked for correctness.
 
-    :type path: string
-    :param path: the path to the dataset
+    :type logger: logging.Logger
+    :param logger: the logger to be used for logging
+
+    :type settings: argparse.Namespace
+    :param settings: the parse command-lien options to the program.
     """
-    if path is None:
-        path = input("Enter the path to the saved dataset: ")
+    dataset_path = setup.get_arg(settings, 'dest_path', checkNone=True)
+    dataset_name = setup.get_arg(settings, 'dest_name', checkNone=True)
+    path = dataset_path + '/' + dataset_name
 
     logger.info("Loading saved dataset.")
     with open(path, "rb") as dataset_file:
@@ -428,7 +350,7 @@ def parse_arguments():
     arg_parse.add_argument("-n", "--num_examples", type=int,
                            help="The number of sentence examples to be saved.")
     arg_parse.add_argument("-s", "--source_path",
-                           help="The source path to the data.")
+                           help="The path to the existing data.")
     arg_parse.add_argument("-d", "--dest_path",
                            help="The destination path for the dataset.")
     arg_parse.add_argument("-f", "--dest_name",
@@ -448,17 +370,6 @@ def parse_arguments():
 if __name__ == "__main__":
     settings = parse_arguments()
     logger = setup.setup_logger(settings)
-    if args.source_type == "csv":
-        read_csv(logger, args.source_path, args.num_comments)
-    if args.mode == "sentences":
-        tokenize_sentences(logger, args.num_examples)
-        create_sentence_dataset(logger, args.vocab_size)
-    if args.mode == "paragraphs":
-        tokenize_paragraphs(logger, args.num_examples)
-        create_paragraph_dataset(logger, args.vocab_size)
-    if args.mode == "stories":
-        tokenize_stories(logger, args.num_examples)
-        create_story_dataset(logger, args.vocab_size)
-    save_dataset(logger, args.dest_path, args.dest_name)
+    save_dataset(logger, settings)
     if args.test:
-        load_dataset(logger, args.dest_path + "/" + args.dest_name)
+        load_dataset(logger, settings)
