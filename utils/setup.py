@@ -3,7 +3,7 @@ Utility class for setting up an RNN.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 17 July, 2017
+Date: 09 August, 2017
 """
 
 # Specify documentation format
@@ -86,6 +86,7 @@ def __add_train_arguments__(parser):
     --learning_rate
     --anneal
     --truncate
+    --batch_size
 
     :type parser: argparse.ArgumentParser
     :param parser: The argument parser to which to add the logger arguments.
@@ -96,14 +97,16 @@ def __add_train_arguments__(parser):
                         help="The maximum number of examples to train on.")
     parser.add_argument("-p", "--patience", default=100000, type=int,
                         help="The number of examples to train before evaluating loss.")
-    parser.add_argument("-t", "--test", action="store_true",
+    parser.add_argument("-test", "--test", action="store_true",
                         help="Treat run as test, do not save models")
     parser.add_argument("-l", "--learn_rate", default=0.005, type=float,
                         help="The learning rate to be used in training.")
     parser.add_argument("-a", "--anneal", type=float, default=0.00001,
                         help="The minimum possible learning rate.")
-    parser.add_argument("-r", "--truncate", type=int, default=100,
+    parser.add_argument("-t", "--truncate", type=int, default=100,
                         help="The backpropagate truncate value.")
+    parser.add_argument("-b", "--batch_size", type=int, default=5,
+                        help="The size of the batches into which to split the training data.")
 # End of __add_train_arguments__()
 
 def __add_dataset_arguments__(parser):

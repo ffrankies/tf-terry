@@ -27,15 +27,11 @@ class RNN(object):
         :param args: The namespace of the command-line arguments passed into the class, or their default values. If
                      not provided, the RNN will initialize those params to defaults.
         """
-        if args is None:
-            self.settings = setup.parse_arguments()
-            self.logger = setup.setup_logger(self.settings)
-        else:
-            self.settings = args
-            self.logger = setup.setup_logger(self.settings)
-        # End of else
+        self.settings = setup.parse_arguments() if args is None else args
+        self.logger = setup.setup_logger(self.settings)
         self.logger.info("RNN settings: %s" % self.settings)
         self.__load_dataset__()
+        self.__create_batches__()
         self.bias = tf.Variable(tf.zeros([3, setup.get_arg(self.settings, 'hidden_size')]))
         self.out_bias = tf.Variable(tf.zeros([len(self.vocabulary)]))
     # End of __init__()
@@ -51,6 +47,20 @@ class RNN(object):
         self.x_train = dataset_params[3]
         self.y_train = dataset_params[4]
     # End of load_dataset()
+
+    def __create_batches__(self):
+        """
+        Creates batches out of loaded data.
+
+        Current implementation is very limited. It would probably be best to sort the training data based on length, 
+        fill it up with placeholders so the sizes are standardized, and then break it up into batches.
+        """
+        self.logger.info("Breaking input data into batches.")
+        self.x_train_batches = [self.x_train[i:i+self.settings.batch_size] for i in range(0, len(self.x_train), self.settings.batch_size)]
+        self.y_train_batches = [self.y_train[i:i+self.settings.batch_size] for i in range(0, len(self.y_train), self.settings.batch_size)]
+        self.num_batches = len(self.x_train_batches)
+        self.logger.info("Obtained %d batches." % self.num_batches)
+    # End of __create_batches__() 
 
     def train(self):
         """
