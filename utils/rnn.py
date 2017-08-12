@@ -3,11 +3,14 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 23 July, 2017
+Date: 11 August, 2017
 """
 
-import numpy
+import numpy as np
 import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import logging
 
 from . import constants
@@ -56,28 +59,150 @@ class RNN(object):
         fill it up with placeholders so the sizes are standardized, and then break it up into batches.
         """
         self.logger.info("Breaking input data into batches.")
-        self.x_train_batches = [self.x_train[i:i+self.settings.batch_size] for i in range(0, len(self.x_train), self.settings.batch_size)]
-        self.y_train_batches = [self.y_train[i:i+self.settings.batch_size] for i in range(0, len(self.y_train), self.settings.batch_size)]
+        self.x_train_batches = [self.x_train[i:i+self.settings.batch_size] 
+            for i in range(0, len(self.x_train), self.settings.batch_size)]
+        self.y_train_batches = [self.y_train[i:i+self.settings.batch_size] 
+            for i in range(0, len(self.y_train), self.settings.batch_size)]
+        maxBatchLength = 0
+        for batch in self.x_train_batches:
+            batchLength = len(batch)
+            maxBatchLength = batchLength if batchLength > maxBatchLength else maxBatchLength
+        placeholder = len(self.vocabulary)
+        self.x_train_batches = (self.x_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
+        self.y_train_batches = (self.y_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
         self.num_batches = len(self.x_train_batches)
         self.logger.info("Obtained %d batches." % self.num_batches)
     # End of __create_batches__() 
+
+    def __create_variables__(self):
+        """
+        Creates placeholders and variables for the tensorflow graph.
+        """
+        self.batch_x_placeholder = self.batch_y_placeholder = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.truncate])
+        self.hidden_state = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.hidden_size])
+
+        self.W = tf.Variable(np.random.rand(self.settings.hidden_size+1, self.settings.hidden_size), dtype=tf.float32)
+        self.b = tf.Variable(np.zeros((1,self.settings.hidden_size)), dtype=tf.float32)
+
+        vocabulary_size = len(self.vocabulary)
+        self.W2 = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
+        self.b2 = tf.Variable(np.zeros((1, vocabulary_size)), dtype=tf.float32)
+    # End of __create_placeholders__()
+
+    def __unstack_variables__(self):
+        """
+        Splits tensorflow graph into adjacent time-steps.
+        """
+        self.__create_variables__()
+        self.inputs_series = tf.unstack(self.batch_x_placeholder, axis=1)
+        self.outputs_series = tf.unstack(self.batch_y_placeholder, axis=1)
+    # End of __unpack_variables__()
+
+    def __forward_pass__(self):
+        """
+        Performs a forward pass within the RNN.
+
+        :type return: a Matrix (list of lists)
+        :param return: The hidden cell states
+        """
+        self.current_state = self.hidden_state
+        states_series = []
+        for current_input in self.inputs_series:
+            current_input = tf.reshape(current_input, [self.settings.batch_size, 1])
+            input_and_state_concatenated = tf.concat([current_input, self.current_state], 1)  # Increasing number of columns
+
+            next_state = tf.tanh(tf.matmul(input_and_state_concatenated, self.W) + self.b)  # Broadcasted addition
+            states_series.append(next_state)
+            self.current_state = next_state
+        return states_series
+    # End of __forward_pass__()
+
+    def __calculate_loss__(self):
+        """
+        Calculates the loss after a training epoch epoch.
+        """
+        states_series = self.__forward_pass__()
+        logits_series = [tf.matmul(state, self.W2) + self.b2 for state in states_series] #Broadcasted addition
+        self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
+
+        for logits, labels in zip(logits_series, self.outputs_series):
+            labels = tf.to_int32(labels, "CastLabelsToInt")
+            losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)]
+        total_loss = tf.reduce_mean(losses)
+
+        train_step = tf.train.AdagradOptimizer(0.3).minimize(total_loss)
+        return (total_loss, train_step)
+    # End of __calculate_loss__()
+
+    def plot(self, loss_list, prediction_series, batch_x, batch_y):
+        """
+        Plots a graph of the training output.
+        """
+        plt.subplot(2, 3, 1)
+        plt.cla()
+        plt.plot(loss_list)
+
+        for batch_series_idx in range(5):
+            one_hot_output_series = np.array(predictions_series)[:, batch_series_idx, :]
+            single_output_series = np.array([(1 if out[0] < 0.5 else 0) for out in one_hot_output_series])
+
+            plt.subplot(2, 3, batch_series_idx + 2)
+            plt.cla()
+            plt.axis([0, self.settings.truncate, 0, 2])
+            left_offset = range(self.settings.truncate)
+            plt.bar(left_offset, batchX[batch_series_idx, :], width=1, color="blue")
+            plt.bar(left_offset, batchY[batch_series_idx, :] * 0.5, width=1, color="red")
+            plt.bar(left_offset, single_output_series * 0.3, width=1, color="green")
+
+        plt.draw()
+        plt.pause(0.0001)
+    # End of plot()
 
     def train(self):
         """
         Initial pseudocode for training the model.
         """
-        lstm = tf.contrib.rnn.BasicLSTMCell(self.settings.hidden_size)
-        batch_size = 1 # My data isn't broken up into batches yet :( Gotta do that, then make this a param.
-        state_size = 5 # Size of lstm state... I'm assuming sequence length?
-        state = tf.zeros([batch_size, state_size])
-        probabilities = []
-        dataset = []
-        loss = 0.0
-        # Actual training data in here
-        for batch in dataset:
-            output, state = lstm(batch, state)
-            logits = tf.matmul(output, softmax_w) + softmax_b
-            loss += loss_function(probabilities, target_words)
+        self.logger.info("Started training the model.")
+        self.__unstack_variables__()
+        self.__create_batches__()
+        total_loss, train_step = self.__calculate_loss__()
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            plt.ion()
+            plt.figure()
+            plt.show()
+            loss_list = []
+
+            for epoch_idx in range(self.settings.epochs):
+                _current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size))
+                self.logger.info("Starting epoch: %d" % epoch_idx)
+
+                for batch_idx in range(self.num_batches):
+                    start_idx = batch_idx * self.settings.truncate
+                    end_idx = start_idx + self.settings.truncate
+
+                    batch_x = self.x_train_batches[start_idx:end_idx]
+                    batch_y = self.y_train_batches[start_idx:end_idx]
+                    print("Hidden state: ", self.hidden_state, "\n", "Current state: ", _current_state)
+                    _total_loss, _train_step, _current_state, _predictions_series = sess.run(
+                        [total_loss, train_step, self.current_state, self.predictions_series],
+                        feed_dict={
+                            self.batch_x_placeholder:batch_x, 
+                            self.batch_y_placeholder:batch_y, 
+                            self.hidden_state:_current_state
+                        })
+
+                    loss_list.append(_total_loss)
+
+            loss_list.append(_total_loss)
+
+            if batch_idx%100 == 0:
+                print("Step",batch_idx, "Loss", _total_loss)
+                plot(loss_list, _predictions_series, batchX, batchY)
+
+        self.logger.info("Finished training the model.")
+        plt.ioff()
+        plt.show()
     # End of train()
 
     def generate_output(self):
