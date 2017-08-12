@@ -103,7 +103,7 @@ def __add_train_arguments__(parser):
                         help="The learning rate to be used in training.")
     parser.add_argument("-a", "--anneal", type=float, default=0.00001,
                         help="The minimum possible learning rate.")
-    parser.add_argument("-t", "--truncate", type=int, default=100,
+    parser.add_argument("-t", "--truncate", type=int, default=10,
                         help="The backpropagate truncate value.")
     parser.add_argument("-b", "--batch_size", type=int, default=5,
                         help="The size of the batches into which to split the training data.")

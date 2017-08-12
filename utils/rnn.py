@@ -39,6 +39,43 @@ class RNN(object):
         self.out_bias = tf.Variable(tf.zeros([len(self.vocabulary)]))
     # End of __init__()
 
+    def __pad_2d_matrix__(self, matrix, value=None):
+        """
+        Pads the rows of a 2d matrix with either a given value or the last value in each 
+        row.
+
+        :type matrix: nested list
+        :param matrix: 2d matrix in python list form with variable row length.
+
+        :type value: int
+        :param value: the value to append to each row.
+
+        :type return: nested list
+        :param return: 2d matrix in python list form with a fixed row length.
+        """
+        self.logger.debug("Padding matrix with shape: ", matrix.shape)
+        paddedMatrix = matrix
+        maxRowLength = max([len(row) for row in paddedMatrix])
+        for row in paddedMatrix:
+            while len(row) < maxRowLength:
+                row.append(value) if value is not None else row.append(row[-1])
+        return paddedMatrix
+    # End of __pad_2d_matrix__()
+
+    def __list_to_numpy_array__(self, matrix):
+        """
+        Converts a list of list matrix to a numpy array of arrays.
+
+        :type matrix: nested list
+        :param matrix: 2d matrix in python list form.
+
+        :type return: nested numpy array
+        :param return: the matrix as a numpy array or arrays.
+        """
+        paddedMatrix = self.__pad_2d_matrix__(matrix, value=len(self.index_to_word))
+        return np.array([np.array(row, dtype=int) for row in paddedMatrix], dtype=int)
+    # End of __list_to_numpy_array__()
+
     def __load_dataset__(self):
         """
         Loads the dataset specified in the command-line arguments. Instantiates variables for the class.
@@ -47,8 +84,8 @@ class RNN(object):
         self.vocabulary = dataset_params[0]
         self.index_to_word = dataset_params[1]
         self.word_to_index = dataset_params[2]
-        self.x_train = dataset_params[3]
-        self.y_train = dataset_params[4]
+        self.x_train = self.__list_to_numpy_array__(dataset_params[3])
+        self.y_train = self.__list_to_numpy_array__(dataset_params[4])
     # End of load_dataset()
 
     def __create_batches__(self):
@@ -59,17 +96,21 @@ class RNN(object):
         fill it up with placeholders so the sizes are standardized, and then break it up into batches.
         """
         self.logger.info("Breaking input data into batches.")
-        self.x_train_batches = [self.x_train[i:i+self.settings.batch_size] 
-            for i in range(0, len(self.x_train), self.settings.batch_size)]
-        self.y_train_batches = [self.y_train[i:i+self.settings.batch_size] 
-            for i in range(0, len(self.y_train), self.settings.batch_size)]
-        maxBatchLength = 0
-        for batch in self.x_train_batches:
-            batchLength = len(batch)
-            maxBatchLength = batchLength if batchLength > maxBatchLength else maxBatchLength
-        placeholder = len(self.vocabulary)
-        self.x_train_batches = (self.x_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
-        self.y_train_batches = (self.y_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
+        self.x_train_batches = np.asarray(self.x_train).reshape((self.settings.batch_size,-1))
+        self.y_train_batches = np.asarray(self.y_train).reshape((self.settings.batch_size,-1))
+        # self.x_train_batches = [self.x_train[i:i+self.settings.batch_size] 
+        #     for i in range(0, len(self.x_train), self.settings.batch_size)]
+        # self.y_train_batches = [self.y_train[i:i+self.settings.batch_size] 
+        #     for i in range(0, len(self.y_train), self.settings.batch_size)]
+        # maxBatchLength = 0
+        # for batch in self.x_train_batches:
+        #     batchLength = len(batch)
+        #     maxBatchLength = batchLength if batchLength > maxBatchLength else maxBatchLength
+        # placeholder = len(self.vocabulary)
+        # self.x_train_batches = np.pad(self.x_train_batches, maxBatchLength, 'edge')
+        # self.y_train_batches = np.pad(self.y_train_batches, maxBatchLength, 'edge')
+        # self.x_train_batches = (self.x_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
+        # self.y_train_batches = (self.y_train_batches + [placeholder] * maxBatchLength)[:maxBatchLength]
         self.num_batches = len(self.x_train_batches)
         self.logger.info("Obtained %d batches." % self.num_batches)
     # End of __create_batches__() 
@@ -84,7 +125,7 @@ class RNN(object):
         self.W = tf.Variable(np.random.rand(self.settings.hidden_size+1, self.settings.hidden_size), dtype=tf.float32)
         self.b = tf.Variable(np.zeros((1,self.settings.hidden_size)), dtype=tf.float32)
 
-        vocabulary_size = len(self.vocabulary)
+        vocabulary_size = len(self.index_to_word) + 1
         self.W2 = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
         self.b2 = tf.Variable(np.zeros((1, vocabulary_size)), dtype=tf.float32)
     # End of __create_placeholders__()
@@ -125,13 +166,14 @@ class RNN(object):
         logits_series = [tf.matmul(state, self.W2) + self.b2 for state in states_series] #Broadcasted addition
         self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
 
+        losses = []
         for logits, labels in zip(logits_series, self.outputs_series):
             labels = tf.to_int32(labels, "CastLabelsToInt")
-            losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)]
-        total_loss = tf.reduce_mean(losses)
+            losses.append(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+        self.total_loss = tf.reduce_mean(losses)
 
-        train_step = tf.train.AdagradOptimizer(0.3).minimize(total_loss)
-        return (total_loss, train_step)
+        self.train_step = tf.train.AdagradOptimizer(0.3).minimize(self.total_loss)
+        # return (total_loss, train_step)
     # End of __calculate_loss__()
 
     def plot(self, loss_list, prediction_series, batch_x, batch_y):
@@ -158,6 +200,28 @@ class RNN(object):
         plt.pause(0.0001)
     # End of plot()
 
+    def __train_minibatch__(self, batch_num, epoch_num, sess):
+        """
+        Trains one minibatch.
+
+        TODO: Refactor and improve comment.
+        """
+        self.logger.debug("Training minibatch : ", batch_num, " | ", "epoch : ", epoch_num + 1)
+        start_index = batch_num * self.settings.truncate
+        end_index = start_index + self.settings.truncate
+
+        batch_x = self.x_train_batches[:, start_index:end_index]
+        batch_y = self.y_train_batches[:, start_index:end_index]
+        _total_loss, _train_step, _current_state, _predictions_series = sess.run(
+            [self.total_loss, self.train_step, self.current_state, self.predictions_series],
+            feed_dict={
+                self.batch_x_placeholder:batch_x, 
+                self.batch_y_placeholder:batch_y, 
+                self.hidden_state:self._current_state
+            })
+        return _total_loss, _train_step, _current_state, _predictions_series
+    # End of __train_minibatch__()
+
     def train(self):
         """
         Initial pseudocode for training the model.
@@ -165,7 +229,7 @@ class RNN(object):
         self.logger.info("Started training the model.")
         self.__unstack_variables__()
         self.__create_batches__()
-        total_loss, train_step = self.__calculate_loss__()
+        self.__calculate_loss__() # Doesn't calculate actual loss, but rather creates symbolic functions that do so.
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             plt.ion()
@@ -174,33 +238,20 @@ class RNN(object):
             loss_list = []
 
             for epoch_idx in range(self.settings.epochs):
-                _current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size))
-                self.logger.info("Starting epoch: %d" % epoch_idx)
+                self._current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size))
+                self.logger.info("Starting epoch: %d" % (epoch_idx + 1))
 
                 for batch_idx in range(self.num_batches):
-                    start_idx = batch_idx * self.settings.truncate
-                    end_idx = start_idx + self.settings.truncate
-
-                    batch_x = self.x_train_batches[start_idx:end_idx]
-                    batch_y = self.y_train_batches[start_idx:end_idx]
-                    print("Hidden state: ", self.hidden_state, "\n", "Current state: ", _current_state)
-                    _total_loss, _train_step, _current_state, _predictions_series = sess.run(
-                        [total_loss, train_step, self.current_state, self.predictions_series],
-                        feed_dict={
-                            self.batch_x_placeholder:batch_x, 
-                            self.batch_y_placeholder:batch_y, 
-                            self.hidden_state:_current_state
-                        })
-
+                    _total_loss, _train_step, self._current_state, _predictions_series = self.__train_minibatch__(batch_idx, epoch_idx, sess)
                     loss_list.append(_total_loss)
-
+                # End of batch training
+                self.logger.info("Finished epoch: %d | loss: %f" % (epoch_idx + 1, _total_loss))
             loss_list.append(_total_loss)
 
             if batch_idx%100 == 0:
-                print("Step",batch_idx, "Loss", _total_loss)
                 plot(loss_list, _predictions_series, batchX, batchY)
 
-        self.logger.info("Finished training the model.")
+        self.logger.info("Finished training the model. Final loss: %f" % _total_loss)
         plt.ioff()
         plt.show()
     # End of train()
