@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 11 August, 2017
+Date: 17 August, 2017
 """
 
 import numpy as np
@@ -75,6 +75,13 @@ class RNN(object):
         return np.array([np.array(row, dtype=int) for row in paddedMatrix], dtype=int)
     # End of __list_to_numpy_array__()
 
+    def __2d_list_to_long_array__(self, matrix):
+        array = np.array([])
+        for row in matrix: array = np.append(array, row)
+        print(array)
+        return array
+    # End of __2d_list_to_long_array__()
+
     def __load_dataset__(self):
         """
         Loads the dataset specified in the command-line arguments. Instantiates variables for the class.
@@ -84,8 +91,8 @@ class RNN(object):
         self.vocabulary, self.index_to_word, self.word_to_index, x_train, y_train = dataset_params
         self.index_to_word = dataset_params[1]
         self.word_to_index = dataset_params[2]
-        x_train = self.__list_to_numpy_array__(x_train)
-        y_train = self.__list_to_numpy_array__(y_train)
+        x_train = self.__2d_list_to_long_array__(x_train)
+        y_train = self.__2d_list_to_long_array__(y_train)
         self.__create_batches__(x_train, y_train)
     # End of load_dataset()
 
@@ -209,7 +216,8 @@ class RNN(object):
                 self.batch_y_placeholder:batch_y, 
                 self.hidden_state:current_state
             })
-        return total_loss, current_state
+        print("Minibatch | Current state: ", current_state)
+        return total_loss, current_state, predictions_series
     # End of __train_minibatch__()
 
     def __train_epoch__(self, epoch_num, sess, current_state, loss_list):
@@ -236,12 +244,12 @@ class RNN(object):
         for batch_num in range(self.num_batches):
             # Debug log outside of function to reduce number of arguments.
             self.logger.debug("Training minibatch : ", batch_num, " | ", "epoch : ", epoch_num + 1)
-            total_loss, current_state = self.__train_minibatch__(batch_num, sess, current_state)
+            total_loss, current_state, predictions_series = self.__train_minibatch__(batch_num, sess, current_state)
             loss_list.append(total_loss)
         # End of batch training
 
         self.logger.info("Finished epoch: %d | loss: %f" % (epoch_num, total_loss))
-        return total_loss, current_state
+        return total_loss, current_state, predictions_series
     # End of __train_epoch__()
 
     def train(self):
@@ -256,15 +264,36 @@ class RNN(object):
             sess.run(tf.global_variables_initializer())
             loss_list = []
 
-            current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size))
+            current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size), dtype=float)
             for epoch_idx in range(1, self.settings.epochs + 1):
-                total_loss, current_state = self.__train_epoch__(epoch_idx, sess, current_state, loss_list)
+                total_loss, current_state, predictions_series = self.__train_epoch__(epoch_idx, sess, current_state, loss_list)
+                print("Shape: ", current_state.shape, " | Current output: ", current_state)
                 # End of epoch training
 
         self.logger.info("Finished training the model. Final loss: %f" % total_loss)
         self.__plot__(loss_list)
+        self.generate_output()
     # End of train()
 
+    def __sample__(self):
+        """
+        Sample RNN output.
+        """
+        return tf.multinomial(self.logits, 1)
+    # End of __sample__()
+
     def generate_output(self):
+        """
+        Generates output sentences.
+        """
+        self.logger.info("Generating output.")
+        sentence = np.array(self.word_to_index[constants.SENT_START])
         print("This feaure isn't implemented yet!")
     # End of generate_output()
+
+    def save_output(self):
+        """
+        Saves sentence output to a file.
+        """
+        print("This feature isn't implemented yet!")
+    # End of save_output()
