@@ -137,7 +137,7 @@ class RNN(object):
         :type return: tuple consisting of two matrices (list of lists)
         :param return: (states_series, current_state)
         """
-        cell = tf.contrib.rnn.BasicRNNCell(self.settings.hidden_size)
+        cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size)
         states_series, current_state = tf.contrib.rnn.static_rnn(cell, self.inputs_series, self.hidden_state_placeholder)
         return states_series, current_state
     # End of __forward_pass__()
