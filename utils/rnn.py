@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 17 August, 2017
+Date: 23 August, 2017
 """
 
 import numpy as np
@@ -78,7 +78,6 @@ class RNN(object):
     def __2d_list_to_long_array__(self, matrix):
         array = np.array([])
         for row in matrix: array = np.append(array, row)
-        print(array)
         return array
     # End of __2d_list_to_long_array__()
 
@@ -115,10 +114,7 @@ class RNN(object):
         Creates placeholders and variables for the tensorflow graph.
         """
         self.batch_x_placeholder = self.batch_y_placeholder = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.truncate])
-        self.hidden_state = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.hidden_size])
-
-        self.W = tf.Variable(np.random.rand(self.settings.hidden_size+1, self.settings.hidden_size), dtype=tf.float32)
-        self.b = tf.Variable(np.zeros((1,self.settings.hidden_size)), dtype=tf.float32)
+        self.hidden_state_placeholder = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.hidden_size])
 
         vocabulary_size = len(self.index_to_word) + 1
         self.W2 = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
@@ -130,7 +126,7 @@ class RNN(object):
         Splits tensorflow graph into adjacent time-steps.
         """
         self.__create_variables__()
-        self.inputs_series = tf.unstack(self.batch_x_placeholder, axis=1)
+        self.inputs_series = tf.split(value=self.batch_x_placeholder, num_or_size_splits=self.settings.truncate, axis=1)
         self.outputs_series = tf.unstack(self.batch_y_placeholder, axis=1)
     # End of __unpack_variables__()
 
@@ -138,19 +134,12 @@ class RNN(object):
         """
         Performs a forward pass within the RNN.
 
-        :type return: a Matrix (list of lists)
-        :param return: The hidden cell states
+        :type return: tuple consisting of two matrices (list of lists)
+        :param return: (states_series, current_state)
         """
-        self.current_state = self.hidden_state
-        states_series = []
-        for current_input in self.inputs_series:
-            current_input = tf.reshape(current_input, [self.settings.batch_size, 1])
-            input_and_state_concatenated = tf.concat([current_input, self.current_state], 1)  # Increasing number of columns
-
-            next_state = tf.tanh(tf.matmul(input_and_state_concatenated, self.W) + self.b)  # Broadcasted addition
-            states_series.append(next_state)
-            self.current_state = next_state
-        return states_series
+        cell = tf.contrib.rnn.BasicRNNCell(self.settings.hidden_size)
+        states_series, current_state = tf.contrib.rnn.static_rnn(cell, self.inputs_series, self.hidden_state_placeholder)
+        return states_series, current_state
     # End of __forward_pass__()
 
     def __create_functions__(self):
@@ -161,7 +150,7 @@ class RNN(object):
                            total_loss_fun - calculates the loss for a forward pass
                            train_step_fun - performs back-propagation for the forward pass
         """
-        states_series = self.__forward_pass__()
+        states_series, self.current_state = self.__forward_pass__()
         logits_series = [tf.matmul(state, self.W2) + self.b2 for state in states_series] #Broadcasted addition
         self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
 
@@ -214,9 +203,8 @@ class RNN(object):
             feed_dict={
                 self.batch_x_placeholder:batch_x, 
                 self.batch_y_placeholder:batch_y, 
-                self.hidden_state:current_state
+                self.hidden_state_placeholder:current_state
             })
-        print("Minibatch | Current state: ", current_state)
         return total_loss, current_state, predictions_series
     # End of __train_minibatch__()
 
@@ -267,7 +255,6 @@ class RNN(object):
             current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size), dtype=float)
             for epoch_idx in range(1, self.settings.epochs + 1):
                 total_loss, current_state, predictions_series = self.__train_epoch__(epoch_idx, sess, current_state, loss_list)
-                print("Shape: ", current_state.shape, " | Current output: ", current_state)
                 # End of epoch training
 
         self.logger.info("Finished training the model. Final loss: %f" % total_loss)
