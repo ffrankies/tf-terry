@@ -17,8 +17,9 @@ Date: 17 July, 2017
 # A simple RNN based on https://www.tensorflow.org/tutorials/recurrent
 ########################################################################################
 from utils import setup
-from utils.rnn import RNN
+from utils.model import RNNModel
 from utils import datasets
+from utils.trainer import train
 
 # settings = setup.parse_arguments()
 #
@@ -30,6 +31,6 @@ from utils import datasets
 
 if __name__ == "__main__":
     settings = setup.parse_arguments()
-    rnn = RNN(settings)
-    rnn.train()
+    rnn = RNNModel(settings)
+    train(rnn)
     rnn.generate_output()

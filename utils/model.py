@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 23 August, 2017
+Date: 24 August, 2017
 """
 
 import numpy as np
@@ -17,7 +17,7 @@ from . import constants
 from . import setup
 from . import datasets
 
-class RNN(object):
+class RNNModel(object):
     """
     A basic RNN implementation in tensorflow.
     """
@@ -161,106 +161,6 @@ class RNN(object):
         self.total_loss_fun = tf.reduce_mean(losses)
         self.train_step_fun = tf.train.AdagradOptimizer(self.settings.learn_rate).minimize(self.total_loss_fun)
     # End of __create_functions__()
-
-    def __plot__(self, loss_list):
-        """
-        Plots a graph of epochs against losses.
-        Currently, the loss_list stores data by minibatch, so it has to be traversed by
-        skipping num_batches steps.
-
-        :type loss_list: list()
-        :param loss_list: the losses incurred during training.
-        """
-        epoch_loss_list = loss_list[::self.num_batches]
-        plt.plot(range(1, len(epoch_loss_list) + 1), epoch_loss_list)
-        plt.savefig(self.settings.log_dir + "plot.png")
-        plt.show()
-    # End of plot()
-
-    def __train_minibatch__(self, batch_num, sess, current_state):
-        """
-        Trains one minibatch.
-
-        :type batch_num: int
-        :param batch_num: the current batch number.
-
-        :type sess: tensorflow Session
-        :param sess: the session during which training occurs.
-
-        :type current_state: numpy matrix (array of arrays)
-        :param current_state: the current hidden state
-
-        :type return: (float, numpy matrix)
-        :param return: (the calculated loss for this minibatch, the updated hidden state)
-        """
-        start_index = batch_num * self.settings.truncate
-        end_index = start_index + self.settings.truncate
-
-        batch_x = self.x_train_batches[:, start_index:end_index]
-        batch_y = self.y_train_batches[:, start_index:end_index]
-        total_loss, train_step, current_state, predictions_series = sess.run(
-            [self.total_loss_fun, self.train_step_fun, self.current_state, self.predictions_series],
-            feed_dict={
-                self.batch_x_placeholder:batch_x, 
-                self.batch_y_placeholder:batch_y, 
-                self.hidden_state_placeholder:current_state
-            })
-        return total_loss, current_state, predictions_series
-    # End of __train_minibatch__()
-
-    def __train_epoch__(self, epoch_num, sess, current_state, loss_list):
-        """
-        Trains one full epoch.
-
-        :type epoch_num: int
-        :param epoch_num: the number of the current epoch.
-
-        :type sess: tensorflow Session
-        :param sess: the session during training occurs.
-
-        :type current_state: numpy matrix
-        :param current_state: the current hidden state.
-
-        :type loss_list: list of floats
-        :param loss_list: holds the losses incurred during training.
-
-        :type return: (float, numpy matrix)
-        :param return: (the latest incurred lost, the latest hidden state)
-        """
-        self.logger.info("Starting epoch: %d" % (epoch_num))
-
-        for batch_num in range(self.num_batches):
-            # Debug log outside of function to reduce number of arguments.
-            self.logger.debug("Training minibatch : ", batch_num, " | ", "epoch : ", epoch_num + 1)
-            total_loss, current_state, predictions_series = self.__train_minibatch__(batch_num, sess, current_state)
-            loss_list.append(total_loss)
-        # End of batch training
-
-        self.logger.info("Finished epoch: %d | loss: %f" % (epoch_num, total_loss))
-        return total_loss, current_state, predictions_series
-    # End of __train_epoch__()
-
-    def train(self):
-        """
-        Trains the given model on the given dataset, and saves the losses incurred
-        at the end of each epoch to a plot image.
-        """
-        self.logger.info("Started training the model.")
-        self.__unstack_variables__()
-        self.__create_functions__()
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            loss_list = []
-
-            current_state = np.zeros((self.settings.batch_size, self.settings.hidden_size), dtype=float)
-            for epoch_idx in range(1, self.settings.epochs + 1):
-                total_loss, current_state, predictions_series = self.__train_epoch__(epoch_idx, sess, current_state, loss_list)
-                # End of epoch training
-
-        self.logger.info("Finished training the model. Final loss: %f" % total_loss)
-        self.__plot__(loss_list)
-        self.generate_output()
-    # End of train()
 
     def __sample__(self):
         """
