@@ -11,7 +11,6 @@ import tensorflow as tf
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import logging
 
 from . import constants
 from .model import RNNModel
@@ -109,6 +108,7 @@ def train(model):
         current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)
         for epoch_idx in range(1, model.settings.epochs + 1):
             total_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, sess, current_state, loss_list)
+            model.latest_state = current_state
             # End of epoch training
 
     model.logger.info("Finished training the model. Final loss: %f" % total_loss)

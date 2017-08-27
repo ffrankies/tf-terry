@@ -3,14 +3,11 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 24 August, 2017
+Date: 25 August, 2017
 """
 
 import numpy as np
 import tensorflow as tf
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import logging
 
 from . import constants
@@ -119,6 +116,7 @@ class RNNModel(object):
         vocabulary_size = len(self.index_to_word) + 1
         self.W2 = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
         self.b2 = tf.Variable(np.zeros((1, vocabulary_size)), dtype=tf.float32)
+        self.latest_state = None
     # End of __create_placeholders__()
 
     def __unstack_variables__(self):
