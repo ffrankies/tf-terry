@@ -68,7 +68,7 @@ class RNNModel(object):
         :type return: nested numpy array
         :param return: the matrix as a numpy array or arrays.
         """
-        paddedMatrix = self.__pad_2d_matrix__(matrix, value=len(self.index_to_word))
+        paddedMatrix = self.__pad_2d_matrix__(matrix, value=None)
         return np.array([np.array(row, dtype=int) for row in paddedMatrix], dtype=int)
     # End of __list_to_numpy_array__()
 
@@ -113,7 +113,7 @@ class RNNModel(object):
         self.batch_x_placeholder = self.batch_y_placeholder = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.truncate])
         self.hidden_state_placeholder = tf.placeholder(tf.float32, [self.settings.batch_size, self.settings.hidden_size])
 
-        vocabulary_size = len(self.index_to_word) + 1
+        vocabulary_size = len(self.index_to_word)
         self.W2 = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
         self.b2 = tf.Variable(np.zeros((1, vocabulary_size)), dtype=tf.float32)
         self.latest_state = None
@@ -149,36 +149,16 @@ class RNNModel(object):
                            train_step_fun - performs back-propagation for the forward pass
         """
         states_series, self.current_state = self.__forward_pass__()
-        logits_series = [tf.matmul(state, self.W2) + self.b2 for state in states_series] #Broadcasted addition
-        self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
+        # logits_series.shape = (truncate, num_batches, vocabulary_size)
+        self.logits_series = [tf.matmul(state, self.W2) + self.b2 for state in states_series] #Broadcasted addition
+        self.predictions_series = [tf.nn.softmax(logits) for logits in self.logits_series]
+        # Logits = predictions before softmax
+        # Predictions_series = softmax(logits) (make probabilities add up to 1)
 
         losses = []
-        for logits, labels in zip(logits_series, self.outputs_series):
+        for logits, labels in zip(self.logits_series, self.outputs_series):
             labels = tf.to_int32(labels, "CastLabelsToInt")
             losses.append(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
         self.total_loss_fun = tf.reduce_mean(losses)
         self.train_step_fun = tf.train.AdagradOptimizer(self.settings.learn_rate).minimize(self.total_loss_fun)
     # End of __create_functions__()
-
-    def __sample__(self):
-        """
-        Sample RNN output.
-        """
-        return tf.multinomial(self.logits, 1)
-    # End of __sample__()
-
-    def generate_output(self):
-        """
-        Generates output sentences.
-        """
-        self.logger.info("Generating output.")
-        sentence = np.array(self.word_to_index[constants.SENT_START])
-        print("This feaure isn't implemented yet!")
-    # End of generate_output()
-
-    def save_output(self):
-        """
-        Saves sentence output to a file.
-        """
-        print("This feature isn't implemented yet!")
-    # End of save_output()

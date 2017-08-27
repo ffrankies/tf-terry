@@ -16,10 +16,12 @@ Date: 17 July, 2017
 #########################################################################################
 # A simple RNN based on https://www.tensorflow.org/tutorials/recurrent
 ########################################################################################
+import tensorflow as tf
 from utils import setup
 from utils.model import RNNModel
 from utils import datasets
 from utils.trainer import train
+from utils.generator import generate_output
 
 # settings = setup.parse_arguments()
 #
@@ -32,5 +34,8 @@ from utils.trainer import train
 if __name__ == "__main__":
     settings = setup.parse_arguments()
     rnn = RNNModel(settings)
-    train(rnn)
-    rnn.generate_output()
+    rnn.__unstack_variables__()
+    rnn.__create_functions__()
+    with tf.Session() as sess:
+        train(rnn, sess, True)
+        generate_output(rnn, sess, False)

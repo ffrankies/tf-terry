@@ -93,23 +93,21 @@ def __train_epoch__(model, epoch_num, sess, current_state, loss_list):
     return total_loss, current_state, predictions_series
 # End of __train_epoch__()
 
-def train(model):
+def train(model, session, initialize_variables):
     """
     Trains the given model on the given dataset, and saves the losses incurred
     at the end of each epoch to a plot image.
     """
     model.logger.info("Started training the model.")
-    model.__unstack_variables__()
-    model.__create_functions__()
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        loss_list = []
+    
+    if initialize_variables == True : session.run(tf.global_variables_initializer()) 
+    loss_list = []
 
-        current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)
-        for epoch_idx in range(1, model.settings.epochs + 1):
-            total_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, sess, current_state, loss_list)
-            model.latest_state = current_state
-            # End of epoch training
+    current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)
+    for epoch_idx in range(1, model.settings.epochs + 1):
+        total_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, session, current_state, loss_list)
+        model.latest_state = current_state
+        # End of epoch training
 
     model.logger.info("Finished training the model. Final loss: %f" % total_loss)
     __plot__(model, loss_list)
