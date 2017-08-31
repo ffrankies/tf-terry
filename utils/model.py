@@ -75,10 +75,11 @@ class RNNModel(object):
     def __2d_list_to_long_array__(self, matrix):
         array = np.array([])
         for row in matrix: array = np.append(array, row)
-        return np.array([
-            array[i:i+self.settings.truncate]
-            for i in range(len(array)+1-self.settings.truncate)
-        ])
+        return array
+        # return np.array([
+        #     array[i:i+self.settings.truncate]
+        #     for i in range(len(array)+1-self.settings.truncate)
+        # ])
         # array_steps = np.asarray(
         #     [array[i:i+self.settings.truncate]]
         #     for i in range(len(array)-self.settings.truncate+1))
