@@ -34,8 +34,8 @@ from utils.generator import generate_output
 if __name__ == "__main__":
     settings = setup.parse_arguments()
     rnn = RNNModel(settings)
-    rnn.__unstack_variables__()
-    rnn.__create_functions__()
+    # rnn.__unstack_variables__()
+    # rnn.__create_functions__()
     with tf.Session() as sess:
         train(rnn, sess, True)
         generate_output(rnn, sess, False)

@@ -51,6 +51,7 @@ def __train_minibatch__(model, batch_num, sess, current_state):
 
     batch_x = model.x_train_batches[:, start_index:end_index]
     batch_y = model.y_train_batches[:, start_index:end_index]
+    # print("batch_x_shape: ", np.shape(batch_x), " | batch_y_shape: ", np.shape(batch_y))
     total_loss, train_step, current_state, predictions_series = sess.run(
         [model.total_loss_fun, model.train_step_fun, model.current_state, model.predictions_series],
         feed_dict={
