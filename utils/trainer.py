@@ -3,7 +3,7 @@ Tensorflow implementation of a training method to train a given model.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 24 August, 2017
+Date: 1 September, 2017
 """
 
 import numpy as np
@@ -18,14 +18,11 @@ from .model import RNNModel
 def __plot__(model, loss_list):
     """
     Plots a graph of epochs against losses.
-    Currently, the loss_list stores data by minibatch, so it has to be traversed by
-    skipping num_batches steps.
 
     :type loss_list: list()
     :param loss_list: the losses incurred during training.
     """
-    epoch_loss_list = loss_list[::model.num_batches]
-    plt.plot(range(1, len(epoch_loss_list) + 1), epoch_loss_list)
+    plt.plot(range(1, len(loss_list) + 1), loss_list)
     plt.savefig(model.settings.log_dir + "plot.png")
     plt.show()
 # End of plot()
@@ -62,7 +59,7 @@ def __train_minibatch__(model, batch_num, sess, current_state):
     return total_loss, current_state, predictions_series
 # End of __train_minibatch__()
 
-def __train_epoch__(model, epoch_num, sess, current_state, loss_list):
+def __train_epoch__(model, epoch_num, sess, current_state):
     """
     Trains one full epoch.
 
@@ -75,23 +72,21 @@ def __train_epoch__(model, epoch_num, sess, current_state, loss_list):
     :type current_state: numpy matrix
     :param current_state: the current hidden state.
 
-    :type loss_list: list of floats
-    :param loss_list: holds the losses incurred during training.
-
     :type return: (float, numpy matrix)
-    :param return: (the latest incurred lost, the latest hidden state)
+    :param return: (the average incurred lost, the latest hidden state)
     """
     model.logger.info("Starting epoch: %d" % (epoch_num))
 
+    total_loss = 0
     for batch_num in range(model.num_batches):
         # Debug log outside of function to reduce number of arguments.
         model.logger.debug("Training minibatch : ", batch_num, " | ", "epoch : ", epoch_num + 1)
-        total_loss, current_state, predictions_series = __train_minibatch__(model, batch_num, sess, current_state)
-        loss_list.append(total_loss)
+        minibatch_loss, current_state, predictions_series = __train_minibatch__(model, batch_num, sess, current_state)
+        total_loss += minibatch_loss
     # End of batch training
-
-    model.logger.info("Finished epoch: %d | loss: %f" % (epoch_num, total_loss))
-    return total_loss, current_state, predictions_series
+    average_loss = total_loss / model.num_batches
+    model.logger.info("Finished epoch: %d | loss: %f" % (epoch_num, average_loss))
+    return average_loss, current_state, predictions_series
 # End of __train_epoch__()
 
 def train(model, session, initialize_variables):
@@ -106,10 +101,11 @@ def train(model, session, initialize_variables):
 
     current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)
     for epoch_idx in range(1, model.settings.epochs + 1):
-        total_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, session, current_state, loss_list)
+        average_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, session, current_state)
         model.latest_state = current_state
+        loss_list.append(average_loss)
         # End of epoch training
 
-    model.logger.info("Finished training the model. Final loss: %f" % total_loss)
+    model.logger.info("Finished training the model. Final loss: %f" % average_loss)
     __plot__(model, loss_list)
 # End of train()
