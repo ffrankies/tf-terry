@@ -56,7 +56,7 @@ def __train_minibatch__(model, batch_num, sess, current_state):
             model.batch_y_placeholder:batch_y, 
             model.hidden_state_placeholder:current_state
         })
-    return total_loss, current_state, predictions_series
+    return total_loss, current_state
 # End of __train_minibatch__()
 
 def __train_epoch__(model, epoch_num, sess, current_state):
@@ -81,12 +81,12 @@ def __train_epoch__(model, epoch_num, sess, current_state):
     for batch_num in range(model.num_batches):
         # Debug log outside of function to reduce number of arguments.
         model.logger.debug("Training minibatch : ", batch_num, " | ", "epoch : ", epoch_num + 1)
-        minibatch_loss, current_state, predictions_series = __train_minibatch__(model, batch_num, sess, current_state)
+        minibatch_loss, current_state = __train_minibatch__(model, batch_num, sess, current_state)
         total_loss += minibatch_loss
     # End of batch training
     average_loss = total_loss / model.num_batches
     model.logger.info("Finished epoch: %d | loss: %f" % (epoch_num, average_loss))
-    return average_loss, current_state, predictions_series
+    return average_loss, current_state
 # End of __train_epoch__()
 
 def train(model, session, initialize_variables):
@@ -101,7 +101,7 @@ def train(model, session, initialize_variables):
 
     current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)
     for epoch_idx in range(1, model.settings.epochs + 1):
-        average_loss, current_state, predictions_series = __train_epoch__(model, epoch_idx, session, current_state)
+        average_loss, current_state = __train_epoch__(model, epoch_idx, session, current_state)
         model.latest_state = current_state
         loss_list.append(average_loss)
         # End of epoch training
