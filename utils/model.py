@@ -135,9 +135,14 @@ class RNNModel(object):
             name="hidden_state_placeholder")
 
         vocabulary_size = len(self.index_to_word)
-        self.out_weights = tf.Variable(np.random.rand(self.settings.hidden_size, vocabulary_size), dtype=tf.float32)
-        self.out_bias = tf.Variable(np.zeros((1, vocabulary_size)), dtype=tf.float32)
-        self.latest_state = None
+        self.out_weights = tf.Variable(
+            np.random.rand(self.settings.hidden_size, vocabulary_size), 
+            dtype=tf.float32,
+            name="out_weights")
+        self.out_bias = tf.Variable(
+            np.zeros((1, vocabulary_size)), 
+            dtype=tf.float32,
+            name="out_bias")
     # End of __create_placeholders__()
 
     def __unstack_variables__(self):
