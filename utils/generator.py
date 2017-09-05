@@ -3,16 +3,20 @@ Tensorflow implementation of methods for generating RNN output.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 25 August, 2017
+Date: 5 September, 2017
 """
 
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import logging
+import math
 
 from . import constants
 from .model import RNNModel
+
+shown = False
+shown2 = 0
 
 def softmax(x):
     """
@@ -26,28 +30,36 @@ def __sentence_to_batch_array__(model, sentence):
     """
     Convert sentence to batch array.
     """
-    #TODO: Move sentence to END of batch array. That way, we can always pick the element at the end of the probabilities_series.
-    batch_array = np.zeros((model.settings.batch_size, model.settings.truncate))
-    for index, word in enumerate(sentence[-1:-11:-1]):
-        batch_array[0][-index] = word
+    batch_array = np.zeros((model.settings.truncate))
+    start_position = math.floor((len(sentence)-1)/model.settings.truncate)*model.settings.truncate
+    for index, word in enumerate(sentence[start_position:start_position+model.settings.truncate]):
+        batch_array[index] = word
+    # Make all rows the same (so it doesn't matter what batch is accessed afterwards)
+    batch_array = np.tile(batch_array, (model.settings.batch_size, 1))
     return batch_array
 # End of __sentence_to_batch_array__()
 
-def run_step(model, sentence, sess, word_index):
+def run_step(model, sentence, sess, current_state):
+    global shown
+
     input_batch = __sentence_to_batch_array__(model, sentence)
 
-    output, current_state = sess.run(
+    predictions, final_hidden_state = sess.run(
         [model.predictions_series, model.current_state], 
         feed_dict={
             model.batch_x_placeholder:input_batch, 
-            model.hidden_state_placeholder:model.latest_state   
+            model.hidden_state_placeholder:current_state   
         })
-
-    print("Shape of predictions_series (output). Height: ", len(output), " Width: ", len(output[0]), " Breadth?: ", len(output[0][0]))
-    print("Shape of current_state: ", current_state.shape)
-    print("Output[-1]", output[-1][0])
-    return output[-1][0]
+    position = (len(sentence)-1) % model.settings.truncate
+    return predictions[position][0], final_hidden_state
 # End of run_step()
+
+# def handle_bad_softmax(model, probabilities):
+#     """
+#     Handles bad softmax.
+#     """
+#     if sum(probabilities[:-1] > 1.0):
+#         model.logger.error("Sum of word probabilities (%f) > 1.0" % sum(probabilities[:-1]))
 
 def sample_output_word(model, probabilities):
     """
@@ -79,20 +91,20 @@ def generate_output(model, session, initialize_variables, num_words_to_generate=
     model.logger.info("Generated sentences: %s" % sentences)
 # End of generate_output()
 
-def __generate_single_output__(model, session, num_words_to_generate):
+def __generate_single_output__(model, session, num_words_to_generate=-1):
     """
     Generates a single output sentence/paragraph/word.
     """
     sentence = np.array([model.word_to_index[constants.SENT_START]])
-    # print("sentence: ", sentence)
-    word_index = 0
+    current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size))
+    num_words = 0
     while num_words_to_generate < 1: # Generate until sentence_stop
-        output = run_step(model, sentence, session, word_index)
+        output, new_current_state = run_step(model, sentence, session, current_state)
         sentence = np.append(sentence, sample_output_word(model, output))
-        # print("Sentence: ", " ".join([model.index_to_word[word] for word in sentence]))
         if sentence[-1] == model.word_to_index[constants.SENT_END] : break
-        if word_index < model.settings.truncate - 1 : word_index += 1
-    # print("Final sentence: ", " ".join([model.index_to_word[word] for word in sentence]))
+        num_words_to_generate -= 1
+        num_words += 1
+    # End of while loop
     return sentence
 # End of __generate_single_output__()
 
