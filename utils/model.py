@@ -121,10 +121,14 @@ class RNNModel(object):
         """
         Creates placeholders and variables for the tensorflow graph.
         """
-        self.batch_x_placeholder = self.batch_y_placeholder = tf.placeholder(
+        self.batch_x_placeholder = tf.placeholder(
             tf.float32, 
             [self.settings.batch_size, self.settings.truncate],
-            name="input/output_placeholder")
+            name="input_placeholder")
+        self.batch_y_placeholder = tf.placeholder(
+            tf.float32,
+            np.shape(self.batch_x_placeholder),
+            name="output_placeholder")
         self.hidden_state_placeholder = tf.placeholder(
             tf.float32, 
             [self.settings.batch_size, self.settings.hidden_size],
@@ -167,7 +171,7 @@ class RNNModel(object):
         """
         states_series, self.current_state = self.__forward_pass__()
         # logits_series.shape = (truncate, num_batches, vocabulary_size)
-        self.logits_series = [tf.matmul(state, self.out_weights) + self.out_bias for state in states_series] #Broadcasted addition
+        self.logits_series = [tf.matmul(state, self.out_weights, name="state_times_out_weights") + self.out_bias for state in states_series] #Broadcasted addition
         self.predictions_series = [tf.nn.softmax(logits) for logits in self.logits_series]
         # Logits = predictions before softmax
         # Predictions_series = softmax(logits) (make probabilities add up to 1)
