@@ -3,7 +3,7 @@ Tensorflow implementation of methods for generating RNN output.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 29 August, 2017
+Date: 5 September, 2017
 """
 
 import numpy as np
@@ -30,18 +30,12 @@ def __sentence_to_batch_array__(model, sentence):
     """
     Convert sentence to batch array.
     """
-    global shown2
-    if shown2 < 20:
-        print("Sentence to turn into batch: ", sentence)
     batch_array = np.zeros((model.settings.truncate))
     start_position = math.floor((len(sentence)-1)/model.settings.truncate)*model.settings.truncate
     for index, word in enumerate(sentence[start_position:start_position+model.settings.truncate]):
         batch_array[index] = word
     # Make all rows the same (so it doesn't matter what batch is accessed afterwards)
     batch_array = np.tile(batch_array, (model.settings.batch_size, 1))
-    if shown2 < 20:
-        print(batch_array[0])
-        shown2 += 1
     return batch_array
 # End of __sentence_to_batch_array__()
 
@@ -56,10 +50,6 @@ def run_step(model, sentence, sess, current_state):
             model.batch_x_placeholder:input_batch, 
             model.hidden_state_placeholder:current_state   
         })
-    # print("Shape of prediction: ", np.shape(prediction))
-    # print("Shape of predictions_series (prediction). Height: ", len(prediction), " Width: ", len(prediction[0]), " Breadth?: ", len(prediction[0][0]))
-    # print("Shape of current_state: ", current_state.shape)
-    # print("prediction[-1]", prediction[-1][0])
     position = (len(sentence)-1) % model.settings.truncate
     return predictions[position][0], final_hidden_state
 # End of run_step()
@@ -114,11 +104,6 @@ def __generate_single_output__(model, session, num_words_to_generate=-1):
         if sentence[-1] == model.word_to_index[constants.SENT_END] : break
         num_words_to_generate -= 1
         num_words += 1
-        if num_words % model.settings.truncate == 0: 
-            current_state = new_current_state
-            print("Changed current_state")
-        # print("Num words for this sentence: ", num_words)
-        # print("Sentence: ", " ".join([model.index_to_word[w] for w in sentence]))
     # End of while loop
     return sentence
 # End of __generate_single_output__()

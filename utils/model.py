@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 25 August, 2017
+Date: 5 September, 2017
 """
 
 import numpy as np
@@ -76,15 +76,6 @@ class RNNModel(object):
         array = np.array([])
         for row in matrix: array = np.append(array, row)
         return array
-        # return np.array([
-        #     array[i:i+self.settings.truncate]
-        #     for i in range(len(array)+1-self.settings.truncate)
-        # ])
-        # array_steps = np.asarray(
-        #     [array[i:i+self.settings.truncate]]
-        #     for i in range(len(array)-self.settings.truncate+1))
-        # print(array_steps)
-        # return array
     # End of __2d_list_to_long_array__()
 
     def __load_dataset__(self):
@@ -122,7 +113,7 @@ class RNNModel(object):
         Creates placeholders and variables for the tensorflow graph.
         """
         self.batch_x_placeholder = tf.placeholder(
-            tf.float32, 
+            tf.int32, 
             [self.settings.batch_size, self.settings.truncate],
             name="input_placeholder")
         self.batch_y_placeholder = tf.placeholder(
@@ -134,15 +125,21 @@ class RNNModel(object):
             [self.settings.batch_size, self.settings.hidden_size],
             name="hidden_state_placeholder")
 
-        vocabulary_size = len(self.index_to_word)
+        self.vocabulary_size = len(self.index_to_word)
         self.out_weights = tf.Variable(
-            np.random.rand(self.settings.hidden_size, vocabulary_size), 
+            np.random.rand(self.settings.hidden_size, self.vocabulary_size), 
             dtype=tf.float32,
             name="out_weights")
         self.out_bias = tf.Variable(
-            np.zeros((1, vocabulary_size)), 
+            np.zeros((1, self.vocabulary_size)), 
             dtype=tf.float32,
             name="out_bias")
+
+        self.embeddings = tf.get_variable(
+            name="word_embeddings",
+            shape=[self.vocabulary_size, self.settings.hidden_size],
+            dtype=tf.float32
+        )
     # End of __create_placeholders__()
 
     def __unstack_variables__(self):
@@ -150,8 +147,18 @@ class RNNModel(object):
         Splits tensorflow graph into adjacent time-steps.
         """
         self.__create_variables__()
-        self.inputs_series = tf.split(value=self.batch_x_placeholder, num_or_size_splits=self.settings.truncate, axis=1)
-        self.outputs_series = tf.unstack(self.batch_y_placeholder, axis=1)
+        # The embedding lookup simulates one-hot encoding of the input,
+        # and simplifies the vectors being used.
+        inputs = tf.nn.embedding_lookup(
+            params=self.embeddings, ids=self.batch_x_placeholder,
+            name="embedding_lookup")
+
+        self.inputs_series = tf.unstack(
+            inputs, axis=1, 
+            name="unstack_inputs_series")
+        self.outputs_series = tf.unstack(
+            self.batch_y_placeholder, axis=1, 
+            name="unstack_outputs_series")
     # End of __unpack_variables__()
 
     def __forward_pass__(self):
@@ -176,7 +183,9 @@ class RNNModel(object):
         """
         states_series, self.current_state = self.__forward_pass__()
         # logits_series.shape = (truncate, num_batches, vocabulary_size)
-        self.logits_series = [tf.matmul(state, self.out_weights, name="state_times_out_weights") + self.out_bias for state in states_series] #Broadcasted addition
+        self.logits_series = [
+            tf.matmul(state, self.out_weights, name="state_times_out_weights") + self.out_bias 
+            for state in states_series] #Broadcasted addition
         self.predictions_series = [tf.nn.softmax(logits) for logits in self.logits_series]
         # Logits = predictions before softmax
         # Predictions_series = softmax(logits) (make probabilities add up to 1)
