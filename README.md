@@ -14,5 +14,5 @@ tf-Terry (this project) is a tensorflow port of the same project. Made as a star
 
 ## Journal
 
-A [journal](journal/README.md) detailing my weekly work process. Since this project is done as a part of the Kindschi Fellowship, it will contain information relevant to both this project and the main research project.
+A [journal](https://github.com/ffrankies/kindschi-fellowship-journal/blob/master/README.md) detailing my weekly work process. Since this project is done as a part of the Kindschi Fellowship, it will contain information relevant to both this project and the main research project.
 
