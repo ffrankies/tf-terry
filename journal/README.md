@@ -22,10 +22,10 @@
 - Installed [bash on ubuntu on windows](https://msdn.microsoft.com/en-us/commandline/wsl/install_guide) because I didn't want to deal with Powershell.
 - Broke my previous code for the Terry project into separate modules, to make reading and maintaining it easier.
 - Set up [Codebeat](https://codebeat.co/) to analyze my code and suggest ways to improve it.
-- After a lot of searching around, finally settled on a [tutorial](https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767) for creating RNNs in tensorflow. 
+- After a lot of searching around, finally settled on a [tutorial](https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767) for creating RNNs in tensorflow.
 - Followed the tutorial through Part 3. At this point, I have:
     - An RNN that succesfully trains on pre-formatted text datasets (i.e., the training loss goes down with time).
-    - The RNN uses the built-in API such that I have very little math code in my work. 
+    - The RNN uses the built-in API such that I have very little math code in my work.
     - The LSTM cells from the tutorial are replaced with GRU cells, for they are simpler, require less computations, and apparently produce very similar results.
 
 ### Roadblocks
@@ -59,3 +59,19 @@
 - Is learning to use the tensorboard feature going to take a long time? And would it help me diagnose problems earlier?
 - For the main Kindschi Fellowship project, how do we judge the success of the network? We can't really test it in a real-life scenario, so we might not actually know how useful this is.
 - How do we deal with the network generalizing movement patterns? We will either have to manually give it 'seeded' movements to represent the first couple steps, or find a way to group the training data and have an extra 'feature' representing the data group. Grouping the data, however, simply based on location, is a task that would seem to require a separate neural network, and we may not have the time to design one.
+
+## Week 2
+
+### Major Happenings
+
+- Fixed an error where one-hot vector encodings weren't happening where I thought they were.
+- Added an embedding layer to the RNN.
+- The above two points helped to more-or-less solve the text generation problem. This still has to be tested on a larger dataset whenever a computer with a GPU becomes available.
+
+### Roadblocks
+
+- Using one-hot vectors with the tensorflow API without adding dimensions to tensors proved challenging. Luckily, with the embedding layer, the one-hot vectors were simulated instead of actually implemented.
+
+### Questions
+
+- We need to find a way to make the RNN code less coupled from its current implementation, so that it could be readily used for the new dataset. 
