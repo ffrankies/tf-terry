@@ -1,0 +1,3 @@
+[submodule "kindschi-fellowship-journal"]
+	path = kindschi-fellowship-journal
+	url = git@github.com:ffrankies/kindschi-fellowship-journal.git
