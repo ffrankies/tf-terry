@@ -3,23 +3,25 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 5 September, 2017
+Date: 9 September, 2017
 """
 
 import numpy as np
 import tensorflow as tf
 import logging
+import ray
 
 from . import constants
 from . import setup
 from . import datasets
+from . import saver
 
 class RNNModel(object):
     """
     A basic RNN implementation in tensorflow.
     """
 
-    def __init__(self, args=None):
+    def __init__(self, args=None, saved_model_path=None):
         """
         Constructor for an RNN.
 
@@ -30,10 +32,23 @@ class RNNModel(object):
         self.settings = setup.parse_arguments() if args is None else args
         self.logger = setup.setup_logger(self.settings)
         self.logger.info("RNN settings: %s" % self.settings)
-        self.__load_dataset__()
-        self.__unstack_variables__()
-        self.__create_functions__()
+        self.__create_ops__()
     # End of __init__()
+
+    def __create_ops__(self):
+        """
+        Creates all internal tensorflow operations and variables inside a local graph and session.
+        """
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            self.__load_dataset__()
+            self.__unstack_variables__()
+            self.__create_functions__()
+            self.session = tf.Session(graph=self.graph)
+            self.variables = ray.experimental.TensorFlowVariables(self.total_loss_fun, self.session)
+            self.session.run(tf.global_variables_initializer())
+        self.model_path = saver.create_model_dir(self.settings)
+    # End of __create_ops__()
 
     def __pad_2d_matrix__(self, matrix, value=None):
         """
@@ -168,7 +183,7 @@ class RNNModel(object):
         :type return: tuple consisting of two matrices (list of lists)
         :param return: (states_series, current_state)
         """
-        cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size)
+        cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size, reuse=tf.get_variable_scope().reuse)
         states_series, current_state = tf.contrib.rnn.static_rnn(cell, self.inputs_series, self.hidden_state_placeholder)
         return states_series, current_state
     # End of __forward_pass__()
@@ -183,15 +198,15 @@ class RNNModel(object):
         """
         states_series, self.current_state = self.__forward_pass__()
         # logits_series.shape = (truncate, num_batches, vocabulary_size)
-        self.logits_series = [
+        logits_series = [
             tf.matmul(state, self.out_weights, name="state_times_out_weights") + self.out_bias 
             for state in states_series] #Broadcasted addition
-        self.predictions_series = [tf.nn.softmax(logits) for logits in self.logits_series]
+        self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
         # Logits = predictions before softmax
         # Predictions_series = softmax(logits) (make probabilities add up to 1)
 
         losses = []
-        for logits, labels in zip(self.logits_series, self.outputs_series):
+        for logits, labels in zip(logits_series, self.outputs_series):
             labels = tf.to_int32(labels, "CastLabelsToInt")
             losses.append(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
         self.total_loss_fun = tf.reduce_mean(losses)

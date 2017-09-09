@@ -22,6 +22,7 @@ from utils.model import RNNModel
 from utils import datasets
 from utils.trainer import train
 from utils.generator import generate_output
+from utils import saver
 
 # settings = setup.parse_arguments()
 #
@@ -33,9 +34,18 @@ from utils.generator import generate_output
 
 if __name__ == "__main__":
     settings = setup.parse_arguments()
-    rnn = RNNModel(settings)
-    # rnn.__unstack_variables__()
-    # rnn.__create_functions__()
-    with tf.Session() as sess:
-        train(rnn, sess, True)
-        generate_output(rnn, sess, False)
+    # rnn = RNNModel(settings)
+    # train(rnn, rnn.session, False)
+    # generate_output(rnn)
+    # saver.save_model(rnn)
+    # rnn.session.close()
+
+    # print("\n\n\nSaved with pickle. Loading with pickle next...\n\n\n")
+    # tf.reset_default_graph()
+
+    rnn2 = RNNModel(settings)
+    saver.load_model(rnn2, "pickle_model")
+    generate_output(rnn2)
+    train(rnn2)
+    generate_output(rnn2)
+    rnn2.session.close()
