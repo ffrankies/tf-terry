@@ -71,7 +71,7 @@ def __add_rnn_arguments__(parser):
                         help="The size of the hidden layers in the RNN.")
     parser.add_argument("-es", "--embed_size", type=int, default=100,
                         help="The size of the embedding layer in the RNN.")
-    parser.add_argument("-m", "--model", default=None,
+    parser.add_argument("-m", "--model_name", default=None,
                         help="The previously trained model to load on init.")
 # End of __add_rnn_arguments__()
 
@@ -187,14 +187,15 @@ def setup_logger(args):
     :type args: Namespace object.
     :param args: The namespace containing command-line arguments entered (or their default values).
     """
-    logger = logging.getLogger(args.logger_name)
+    logger = logging.getLogger(args.logger_name) if args.model_name is None else logging.getLogger(args.model_name)
     logger.setLevel(logging.INFO)
 
     create_dir(args.log_dir)
+    logger_filename = args.log_filename if args.model_name is None else args.model_name + ".log"
 
     # Logger will use up to 5 files for logging, 'rotating' the data between them as they get filled up.
     handler = logging.handlers.RotatingFileHandler(
-        filename=args.log_dir + '/' + args.log_filename,
+        filename=args.log_dir + '/' + logger_filename,
         maxBytes=1024*512,
         backupCount=5
     )

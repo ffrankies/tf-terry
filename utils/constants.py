@@ -23,3 +23,9 @@ SPACE = "SPACE_TOKEN"
 # LOGGING
 ########################################
 LOG_NAME = "TERRY"
+
+#########################################
+# DEFAULT DIRECTORIES
+#########################################
+MODEL_DIR = "models/"
+DATASETS_DIR = "datasets/"
