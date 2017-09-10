@@ -4,29 +4,34 @@ tensorflow model to file.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 6 September, 2017
+Date: 10 September, 2017
 """
 
 import tensorflow as tf
-import time
 import pickle
+import os
 
 from .constants import MODEL_DIR
+from . import constants
 from . import setup
 
-def create_model_dir(model_settings):
+def create_model_dir(model_settings, creation_timestamp):
     """
     Creates the directory in which to save the model.
 
     :type model_settings: Namespace()
     :param model_settings: the model's settings.
 
+    :type creation_timestamp: String
+    :param creation_timestamp: the timestamp at which the model was created. Used to create the model directory if
+                               a model name was not provided.
+
     :type return: String
     :param return: the path to the created directory
     """
     model_name = model_settings.model_name
     if model_name is None:
-        model_path = MODEL_DIR + time.strftime("%d%m%y%H") + "/"
+        model_path = MODEL_DIR + creation_timestamp + "/"
     else:
         model_path = MODEL_DIR + model_name + "/"
     setup.create_dir(model_path)
@@ -41,7 +46,9 @@ def save_model(model):
     :param model: The model to save.
     """
     weights = model.variables.get_weights()
-    with open(model.model_path + "/weights.pkl", "wb") as weights_file:
+    with open(model.model_path + constants.LATEST_WEIGHTS, "wb") as weights_file:
+        pickle.dump(weights, weights_file)
+    with open(model.model_path + model.run_dir + "/" + constants.WEIGHTS, "wb") as weights_file:
         pickle.dump(weights, weights_file)
 # End of save_model()
 
@@ -55,8 +62,34 @@ def load_model(model, model_name_or_timestamp):
     :type model_name_or_timestamp: String
     :param model_name_or_timestamp: the name or timestamp of the model to load
     """
-    weights_path = MODEL_DIR + model_name_or_timestamp + "/weights.pkl"
+    weights_path = MODEL_DIR + model_name_or_timestamp + "/" + constants.LATEST_WEIGHTS
     with open(weights_path, "rb") as weights_file:
         weights = pickle.load(weights_file)
         model.variables.set_weights(weights)
 # End of load_model()
+
+def load_meta(model_path):
+    """
+    Loads meta information about the model. Currently, it only loads in the latest run folder.
+
+    :type model_path: String
+    :param model_path: the path to the directory where model information will be saved.
+
+    :type return: String
+    :param return: the save directory for snapshot model data
+    """
+    meta_path = model_path + constants.META
+    if os.path.isfile(meta_path):
+        # Read current run_num from meta file
+        with open(meta_path, "rb") as meta_file:
+            run_num = pickle.load(meta_file)
+    else: 
+        run_num = 1
+    # Write next run_num to meta file
+    with open(meta_path, "wb") as meta_file:
+        pickle.dump(run_num+1, meta_file)
+    run_dir = "run_" + str(run_num)
+    setup.create_dir(model_path + run_dir + "/")
+    return run_dir
+# End of load_meta()
+    
