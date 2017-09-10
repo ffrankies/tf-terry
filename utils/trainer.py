@@ -3,7 +3,7 @@ Tensorflow implementation of a training method to train a given model.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 1 September, 2017
+Date: 9 September, 2017
 """
 
 import numpy as np

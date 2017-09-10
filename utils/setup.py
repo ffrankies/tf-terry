@@ -3,7 +3,7 @@ Utility class for setting up an RNN.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 09 August, 2017
+Date: 9 September, 2017
 """
 
 # Specify documentation format

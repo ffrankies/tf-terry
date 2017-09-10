@@ -3,7 +3,7 @@ Contains constants for use within the project.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 17 July, 2017
+Date: 9 September, 2017
 """
 ##########################################
 # TOKENS
@@ -29,3 +29,12 @@ LOG_NAME = "TERRY"
 #########################################
 MODEL_DIR = "models/"
 DATASETS_DIR = "datasets/"
+TENSORBOARD = "tensorboard"
+
+#########################################
+# VARIABLE SCOPES FOR TENSORBOARD
+#########################################
+EMBEDDING = "embedding_layer"
+HIDDEN = "hidden_layers"
+OUTPUT = "output_layer"
+TRAINING = "network_training"

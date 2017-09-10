@@ -4,7 +4,7 @@ tensorflow model to file.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 6 September, 2017
+Date: 9 September, 2017
 """
 
 import tensorflow as tf

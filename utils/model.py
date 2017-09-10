@@ -42,8 +42,7 @@ class RNNModel(object):
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.__load_dataset__()
-            self.__unstack_variables__()
-            self.__create_functions__()
+            self._training()
             self.session = tf.Session(graph=self.graph)
             self.variables = ray.experimental.TensorFlowVariables(self.total_loss_fun, self.session)
             self.session.run(tf.global_variables_initializer())
@@ -104,6 +103,7 @@ class RNNModel(object):
         self.word_to_index = dataset_params[2]
         x_train = self.__2d_list_to_long_array__(x_train)
         y_train = self.__2d_list_to_long_array__(y_train)
+        self.vocabulary_size = len(self.index_to_word)
         self.__create_batches__(x_train, y_train)
     # End of load_dataset()
 
@@ -123,92 +123,89 @@ class RNNModel(object):
         self.logger.info("Obtained %d batches." % self.num_batches)
     # End of __create_batches__() 
 
-    def __create_variables__(self):
+    def _input_layer(self):
         """
-        Creates placeholders and variables for the tensorflow graph.
+        Creates the tensorflow variables and operations needed to perform the embedding lookup.
         """
-        self.batch_x_placeholder = tf.placeholder(
-            tf.int32, 
-            [self.settings.batch_size, self.settings.truncate],
-            name="input_placeholder")
-        self.batch_y_placeholder = tf.placeholder(
-            tf.float32,
-            np.shape(self.batch_x_placeholder),
-            name="output_placeholder")
-        self.hidden_state_placeholder = tf.placeholder(
-            tf.float32, 
-            [self.settings.batch_size, self.settings.hidden_size],
-            name="hidden_state_placeholder")
+        with tf.variable_scope(constants.EMBEDDING):
+            self.batch_x_placeholder = tf.placeholder(
+                dtype=tf.int32, 
+                shape=[self.settings.batch_size, self.settings.truncate],
+                name="input_placeholder")
+            embeddings = tf.get_variable(
+                name="word_embeddings",
+                shape=[self.vocabulary_size, self.settings.hidden_size],
+                dtype=tf.float32)
+            inputs = tf.nn.embedding_lookup(
+                params=embeddings, ids=self.batch_x_placeholder,
+                name="embedding_lookup")
+            inputs_series = tf.unstack(
+                inputs, axis=1, 
+                name="unstack_inputs_series")
+        return inputs_series
+    # End of _input_layer()
 
-        self.vocabulary_size = len(self.index_to_word)
-        self.out_weights = tf.Variable(
-            np.random.rand(self.settings.hidden_size, self.vocabulary_size), 
-            dtype=tf.float32,
-            name="out_weights")
-        self.out_bias = tf.Variable(
-            np.zeros((1, self.vocabulary_size)), 
-            dtype=tf.float32,
-            name="out_bias")
-
-        self.embeddings = tf.get_variable(
-            name="word_embeddings",
-            shape=[self.vocabulary_size, self.settings.hidden_size],
-            dtype=tf.float32
-        )
-    # End of __create_placeholders__()
-
-    def __unstack_variables__(self):
+    def _hidden_layer(self):
         """
-        Splits tensorflow graph into adjacent time-steps.
+        Creates the tensorflow variables and operations needed to compute the hidden layer state.
         """
-        self.__create_variables__()
-        # The embedding lookup simulates one-hot encoding of the input,
-        # and simplifies the vectors being used.
-        inputs = tf.nn.embedding_lookup(
-            params=self.embeddings, ids=self.batch_x_placeholder,
-            name="embedding_lookup")
+        inputs_series = self._input_layer()
+        with tf.variable_scope(constants.HIDDEN):
+            self.hidden_state_placeholder = tf.placeholder(
+                dtype=tf.float32, 
+                shape=[self.settings.batch_size, self.settings.hidden_size],
+                name="hidden_state_placeholder")
+            cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size, reuse=tf.get_variable_scope().reuse)
+            states_series, self.current_state = tf.contrib.rnn.static_rnn(
+                cell=cell, 
+                inputs=inputs_series, 
+                initial_state=self.hidden_state_placeholder)
+        return states_series
+    # End of _hidden_layer()
 
-        self.inputs_series = tf.unstack(
-            inputs, axis=1, 
-            name="unstack_inputs_series")
-        self.outputs_series = tf.unstack(
-            self.batch_y_placeholder, axis=1, 
-            name="unstack_outputs_series")
-    # End of __unpack_variables__()
-
-    def __forward_pass__(self):
+    def _output_layer(self):
         """
-        Performs a forward pass within the RNN.
-
-        :type return: tuple consisting of two matrices (list of lists)
-        :param return: (states_series, current_state)
+        Creates the tensorflow variables and operations needed to compute the network outputs.
         """
-        cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size, reuse=tf.get_variable_scope().reuse)
-        states_series, current_state = tf.contrib.rnn.static_rnn(cell, self.inputs_series, self.hidden_state_placeholder)
-        return states_series, current_state
-    # End of __forward_pass__()
+        states_series = self._hidden_layer()
+        with tf.variable_scope(constants.OUTPUT):
+            self.batch_y_placeholder = tf.placeholder(
+                dtype=tf.float32,
+                shape=np.shape(self.batch_x_placeholder),
+                name="output_placeholder")
+            self.out_weights = tf.Variable(
+                initial_value=np.random.rand(self.settings.hidden_size, self.vocabulary_size), 
+                dtype=tf.float32,
+                name="out_weights")
+            self.out_bias = tf.Variable(
+                np.zeros((self.vocabulary_size)), 
+                dtype=tf.float32,
+                name="out_bias") 
+            logits_series = [
+                tf.nn.xw_plus_b(state, self.out_weights, self.out_bias, name="state_times_out_weights")
+                for state in states_series] #Broadcasted addition
+        with tf.variable_scope("predictions"):
+            self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
+        return logits_series
+    # End of _output_layer()
 
-    def __create_functions__(self):
+    def _training(self):
         """
-        Creates symbolic functions needed for training.
-
-        Functions created: predictions_series - makes output predictions on a forward pass
-                           total_loss_fun - calculates the loss for a forward pass
-                           train_step_fun - performs back-propagation for the forward pass
+        Creates tensorflow variables and operations needed for training.
         """
-        states_series, self.current_state = self.__forward_pass__()
-        # logits_series.shape = (truncate, num_batches, vocabulary_size)
-        logits_series = [
-            tf.matmul(state, self.out_weights, name="state_times_out_weights") + self.out_bias 
-            for state in states_series] #Broadcasted addition
-        self.predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
-        # Logits = predictions before softmax
-        # Predictions_series = softmax(logits) (make probabilities add up to 1)
-
-        losses = []
-        for logits, labels in zip(logits_series, self.outputs_series):
-            labels = tf.to_int32(labels, "CastLabelsToInt")
-            losses.append(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
-        self.total_loss_fun = tf.reduce_mean(losses)
-        self.train_step_fun = tf.train.AdagradOptimizer(self.settings.learn_rate).minimize(self.total_loss_fun)
-    # End of __create_functions__()
+        logits_series = self._output_layer()
+        with tf.variable_scope(constants.TRAINING):
+            self.learning_rate = tf.Variable(
+                initial_value=self.settings.learn_rate,
+                dtype=tf.float32,
+                name="learning_rate")
+            outputs_series = tf.unstack(
+                self.batch_y_placeholder, axis=1, 
+                name="unstack_outputs_series")
+            losses = []
+            for logits, labels in zip(logits_series, outputs_series):
+                labels = tf.to_int32(labels, "CastLabelsToInt")
+                losses.append(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+            self.total_loss_fun = tf.reduce_mean(losses)
+            self.train_step_fun = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.total_loss_fun)
+    # End of _training()
