@@ -24,28 +24,21 @@ from utils.trainer import train
 from utils.generator import generate_output
 from utils import saver
 
-# settings = setup.parse_arguments()
-#
-# # TO-DO: import data here
-#
-# # RNN code here
-# rnn = RNN(settings)
-# rnn.train()
-
 if __name__ == "__main__":
     settings = setup.parse_arguments()
-    # rnn = RNNModel(settings)
-    # train(rnn, rnn.session, False)
-    # generate_output(rnn)
-    # saver.save_model(rnn)
-    # rnn.session.close()
+    rnn = RNNModel(settings)
+    train(rnn)
+    generate_output(rnn)
+    saver.save_model(rnn)
+    rnn.session.close()
 
     # print("\n\n\nSaved with pickle. Loading with pickle next...\n\n\n")
     # tf.reset_default_graph()
 
-    rnn2 = RNNModel(settings)
-    saver.load_model(rnn2, "pickle_model")
-    generate_output(rnn2)
-    train(rnn2)
-    generate_output(rnn2)
-    rnn2.session.close()
+    # rnn2 = RNNModel(settings)
+    # saver.load_model(rnn2, "test_model")
+    # # generate_output(rnn2)
+    # train(rnn2)
+    # generate_output(rnn2)
+    # saver.save_model(rnn2)
+    # rnn2.session.close()

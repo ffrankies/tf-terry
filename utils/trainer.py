@@ -26,7 +26,7 @@ def plot(model, loss_list):
     :param loss_list: the losses incurred during training.
     """
     plt.plot(range(1, len(loss_list) + 1), loss_list)
-    plt.savefig(model.model_path + "loss_plot.png")
+    plt.savefig(model.model_path + model.run_dir + constants.PLOT)
     plt.show()
 # End of plot()
 
@@ -52,13 +52,16 @@ def train_minibatch(model, batch_num, current_state):
     batch_x = model.x_train_batches[:, start_index:end_index]
     batch_y = model.y_train_batches[:, start_index:end_index]
     
-    total_loss, train_step, current_state, predictions_series = model.session.run(
-        [model.total_loss_fun, model.train_step_fun, model.current_state, model.predictions_series],
+    total_loss, train_step, current_state, summary = model.session.run(
+        [model.total_loss_fun, model.train_step_fun, model.current_state, model.summary_ops],
         feed_dict={
             model.batch_x_placeholder:batch_x, 
             model.batch_y_placeholder:batch_y, 
             model.hidden_state_placeholder:current_state
         })
+
+    model.summary_writer.add_summary(summary)
+
     return total_loss, current_state
 # End of train_minibatch()
 
@@ -102,7 +105,7 @@ def train(model):
     :param model: the model to train.
     """
     model.logger.info("Started training the model.")
-    writer = tf.summary.FileWriter(model.model_path + "tensorboard", graph=model.session.graph)
+    # writer = tf.summary.FileWriter(model.model_path + "tensorboard", graph=model.session.graph)
     loss_list = []
 
     current_state = np.zeros((model.settings.batch_size, model.settings.hidden_size), dtype=float)

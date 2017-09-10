@@ -29,7 +29,7 @@ LOG_NAME = "TERRY"
 #########################################
 MODEL_DIR = "models/"
 DATASETS_DIR = "datasets/"
-TENSORBOARD = "tensorboard"
+TENSORBOARD = "tensorboard/"
 
 #########################################
 # VARIABLE SCOPES FOR TENSORBOARD
@@ -38,3 +38,17 @@ EMBEDDING = "embedding_layer"
 HIDDEN = "hidden_layers"
 OUTPUT = "output_layer"
 TRAINING = "network_training"
+
+#########################################
+# TENSORBOARD SUMMARY NAMES
+#########################################
+
+
+#########################################
+# DEFAULT FILENAMES
+#########################################
+LATEST_WEIGHTS = "latest_weights.pkl"
+WEIGHTS = "/weights.pkl"
+PLOT = "/loss_plot.png"
+META = "meta.pkl"
+LOGGING = "logging.log"
