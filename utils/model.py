@@ -69,6 +69,7 @@ class RNNModel(object):
     def _create_long_array(self, matrix):
         array = np.array([])
         for row in matrix: array = np.append(array, row)
+        while len(array) % self.settings.batch_size != 0: array = np.append(array, [array[-1]])
         return array
     # End of _create_long_array()
 
