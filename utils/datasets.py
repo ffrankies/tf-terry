@@ -29,7 +29,7 @@ Date: 22 Jul, 2017
 #   the output for training, in tokenized format (as indexes)
 #
 # Author: Frank Wanye
-# Date: 19 July, 2017
+# Date: 13 September, 2017
 ###############################################################################
 
 # Specify documentation format
@@ -53,6 +53,34 @@ import argparse
 import time
 from . import setup
 from . import constants
+
+def preprocess_data(logger, data_array):
+    """
+    Pre-processes data in data_array so that it is more or less modular.
+
+    :type logger: logging.Logger()
+    :param logger: the logger to which to write log output.
+
+    :type data_array: list()
+    :param data_array: the list of Strings to be preprocessed
+
+    :type return: list()
+    :param return: the list of preprocessed Strings.
+    """
+    logger.info("Preprocessing data")
+    num_skipped = 0
+    preprocessed_data = []
+    for item in data_array:
+        if "[" in item or "]" in item:
+            num_skipped += 1
+            continue
+        item = item.replace("\n", " %s " % constants.CARRIAGE_RETURN)
+        item = item.replace("\'\'", "\"")
+        item = item.replace("``", "\"")
+        preprocessed_data.append(item)
+    logger.info("Skipped %d items in data." % num_skipped)
+    return preprocessed_data
+# End of preprocess_data()
 
 def read_csv(logger, settings):
     """
@@ -80,17 +108,13 @@ def read_csv(logger, settings):
         except Exception:
             reader.next() # For older versions of Python
         num_seen = 0
-        num_saved = 0
         for item in reader:
             if len(item) > 0 and len(item[0]) > 0:
                 comments.append(item[0])
-                num_saved += 1
-                if (not max is None) and num_saved >= max:
-                    num_seen += 1
-                    logger.info("Gone over %d examples, saved %d of them" % (num_seen, num_saved))
+                num_seen += 1
+                if (not settings.num_comments is None) and num_seen >= settings.num_comments:
                     break
-            num_seen += 1
-        logger.info("Gone over %d examples, saved %d of them" % (num_seen, num_saved))
+        logger.info("%d examples kept for creating training dataset." % num_seen)
     # End with
     return comments
 # End of read_csv()
@@ -118,18 +142,7 @@ def tokenize_sentences(logger, settings):
     sentences = list(sentences)
     logger.info("%d sentences found in dataset." % len(sentences))
 
-    logger.info("Preprocessing sentences")
-    sents = []
-    for item in sentences:
-        item = item.replace(" ", " %s " % constants.SPACE)
-        item = item.replace("\'\'", "\"")
-        item = item.replace("``", "\"")
-        sents.append(item)
-    sentences = sents
-
-    for sentence in sentences:
-        if "[" in sentence or "]" in sentence:
-            sentences.remove(sentence)
+    sentences = preprocess_data(logger, sentences)
 
     if (not num_examples is None) and num_examples < len(sentences):
         logger.info("Reducing number of sentences to %d" % num_examples)
@@ -167,15 +180,7 @@ def tokenize_paragraphs(logger, settings):
         paragraphs.extend(re.split('\n+', comment.lower()))
     logger.info("%d comments were broken down into %d paragraphs." % (len(comments), len(paragraphs)))
 
-    logger.info("Preprocessing paragraphs.")
-    for item in paragraphs:
-        item = item.replace(" ", " %s " % constants.SPACE)
-        item = item.replace("\'\'", "\"")
-        item = item.replace("``", "\"")
-
-    for paragraph in paragraphs:
-        if "[" in paragraph or "]" in paragraph:
-            paragraphs.remove(paragraph)
+    paragraphs = preprocess_data(logger, paragraphs)
 
     if (not num_examples is None) and num_examples < len(paragraphs):
         logger.info("Reducing number of paragraphs to %d" % num_examples)
@@ -212,16 +217,7 @@ def tokenize_stories(logger, settings):
     stories = [comment.lower() for comment in comments]
     logger.info("Found %d stories in the dataset." % len(stories))
 
-    logger.info("Preprocessing storeis")
-    for item in stories:
-        item = item.replace("\n", " %s " % constants.CARRIAGE_RETURN)
-        item = item.replace(" ", " %s " % constants.SPACE)
-        item = item.replace("\'\'", "\"")
-        item = item.replace("``", "\"")
-
-    for story in stories:
-        if "[" in story or "]" in story:
-            stories.remove(story)
+    stories = preprocess_data(logger, stories)
 
     if (not num_examples is None) and num_examples < len(stories):
         logger.info("Reducing number of stories to %d" % num_examples)
@@ -362,9 +358,26 @@ def parse_arguments():
     return arg_parse.parse_args()
 # End of parse_arguments()
 
-if __name__ == "__main__":
+def run():
     settings = parse_arguments()
-    logger = setup.setup_logger(settings)
+    logger = logging.getLogger("datasets")
+    logger_dir = "dataset_log/"
+    logger.setLevel(logging.INFO)
+    setup.create_dir(logger_dir)
+    # Logger will use up to 5 files for logging, 'rotating' the data between them as they get filled up.
+    handler = logging.handlers.RotatingFileHandler(
+        filename=logger_dir + constants.LOGGING,
+        maxBytes=1024*512,
+        backupCount=5
+    )
+    formatter = logging.Formatter(
+        "%(asctime)s-%(name)s-%(levelname)s-%(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
     save_dataset(logger, settings)
-    if args.test:
+    if settings.test:
         load_dataset(logger, settings)
+
+if __name__ == "__main__":
+    run()

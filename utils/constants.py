@@ -30,6 +30,8 @@ LOG_NAME = "TERRY"
 MODEL_DIR = "models/"
 DATASETS_DIR = "datasets/"
 TENSORBOARD = "tensorboard/"
+LOG_DIR = "logging/"
+RAW_DATA_DIR = "raw_data/"
 
 #########################################
 # VARIABLE SCOPES FOR TENSORBOARD

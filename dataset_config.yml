@@ -1,0 +1,20 @@
+---
+logging: 
+  log_dir:
+  log_filename: datasets.log
+  log_name:
+rnn:
+  hidden_size: 
+  embed_size:
+  model_name:
+train:
+  epochs:
+  patience:
+  learn_rate:
+  anneal:
+  truncate:
+  batch_size:
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset: test.pkl
