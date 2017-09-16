@@ -81,7 +81,7 @@ class Settings(object):
         rnn = yaml_settings.get("rnn")
         train = yaml_settings.get("train")
         data = yaml_settings.get("data")
-        return general, data, train, logging, rnn
+        return general, logging, rnn, train, data
     # End of parse_config_yml()
 
     def read_yml(self, yml_file):
@@ -121,6 +121,7 @@ class Settings(object):
     def set_default_values(self, user_dict, default_dict):
         """
         Sets None values in user_dict to default values from default_dict.
+        Also adds default values for parameters that haven't been named in the user_dict.
 
         Params:
         user_dict (dict): The dictionary containing user-provided values
@@ -130,10 +131,13 @@ class Settings(object):
         dict: The user_dict with None values replaced with defaults
         """
         changed_dict = dict()
-        for key, value in user_dict:
+        for key, value in user_dict.items():
             if value is None:
                 changed_dict[key] = default_dict[key]
             else:
+                changed_dict[key] = value
+        for key, value in default_dict.items():
+            if key not in changed_dict.keys():
                 changed_dict[key] = value
         return changed_dict
     # End of set_default_values()

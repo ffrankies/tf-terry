@@ -1,12 +1,14 @@
 ---
+general:
+  model_name:
 logging: 
   log_dir:
   log_filename: datasets.log
   log_name:
 rnn:
+  dataset:
   hidden_size: 
   embed_size:
-  model_name:
 train:
   epochs:
   patience:
