@@ -201,26 +201,22 @@ def get_arg(settings, argument, asInt=False, asBoolean=False, asFloat=False, che
     return arg
 # End of get_arg()
 
-def setup_logger(args, timestamp):
+def setup_logger(args, model_name):
     """
     Sets up a logger
 
     :type args: Namespace object.
     :param args: The namespace containing command-line arguments entered (or their default values).
     """
-    if args.model_name is None:
-        logger = logging.getLogger(args.log_name)
-        logger_dir = constants.MODEL_DIR + timestamp + "/"
-    else:
-        logger = logging.getLogger(args.model_name)
-        logger_dir = constants.MODEL_DIR + args.model_name + "/"
+    logger = logging.getLogger(args.log_name)
+    logger_dir = constants.MODEL_DIR + model_name + "/"
     
     logger.setLevel(logging.INFO)
     create_dir(logger_dir)
 
     # Logger will use up to 5 files for logging, 'rotating' the data between them as they get filled up.
     handler = logging.handlers.RotatingFileHandler(
-        filename=logger_dir + constants.LOGGING,
+        filename=logger_dir + args.log_filename,
         maxBytes=1024*512,
         backupCount=5
     )

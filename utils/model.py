@@ -33,8 +33,7 @@ class RNNModel(object):
                      not provided, the RNN will initialize those params to defaults.
         """
         self.settings = settings.Settings()
-        self.creation_timestamp = time.strftime("%d%m%y%H")
-        self.logger = setup.setup_logger(self.settings, self.creation_timestamp)
+        self.logger = setup.setup_logger(self.settings.logging, self.settings.general.model_name)
         self.logger.info("RNN settings: %s" % self.settings)
         self._create_graph()
     # End of __init__()
@@ -56,7 +55,7 @@ class RNNModel(object):
         """
         Loads the dataset specified in the command-line arguments. Instantiates variables for the class.
         """
-        dataset_params = datasets.load_dataset(self.logger, self.settings)
+        dataset_params = datasets.load_dataset(self.logger, self.settings.rnn.dataset)
         # Don't need to keep the actual training data when creating batches.
         self.vocabulary, self.index_to_word, self.word_to_index, x_train, y_train = dataset_params
         self.index_to_word = dataset_params[1]

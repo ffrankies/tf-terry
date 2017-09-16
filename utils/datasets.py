@@ -299,22 +299,18 @@ def save_dataset(logger, settings):
         cPickle.dump(create_dataset(logger, settings), dataset_file, protocol=2)
 # End of save_dataset()
 
-def load_dataset(logger, settings):
+def load_dataset(logger, dataset):
     """
-    Loads a saved dataset..
+    Loads a saved dataset.
 
-    :type logger: logging.Logger
-    :param logger: the logger to be used for logging
+    Params:
+    logger (logging.Logger): The logger to be used for logging function results
+    dataset (string): The filename of the pickled dataset to load
 
-    :type settings: argparse.Namespace
-    :param settings: the parse command-lien options to the program.
-
-    :type return: A tuple
-    :param return: (vocabulary, index_to_word, word_to_index, x_train, y_train)
+    Return:
+    tuple: (vocabulary, index_to_word, word_to_index, x_train, y_train)
     """
-    dataset_path = setup.get_arg(settings, 'saved_dataset_path', checkNone=True)
-    dataset_name = setup.get_arg(settings, 'saved_dataset_name', checkNone=True)
-    path = dataset_path + '/' + dataset_name
+    path = constants.DATASETS_DIR + dataset
 
     logger.info("Loading saved dataset.")
     with open(path, "rb") as dataset_file:
@@ -378,6 +374,7 @@ def run():
     save_dataset(logger, settings)
     if settings.test:
         load_dataset(logger, settings)
+# End of run()
 
 if __name__ == "__main__":
     run()
