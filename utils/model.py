@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 15 September, 2017
+Date: 16 September, 2017
 """
 
 import numpy as np
@@ -24,16 +24,13 @@ class RNNModel(object):
     A basic RNN implementation in tensorflow.
     """
 
-    def __init__(self, args=None):
+    def __init__(self):
         """
-        Constructor for an RNN.
-
-        :type args: Namespace object.
-        :param args: The namespace of the command-line arguments passed into the class, or their default values. If
-                     not provided, the RNN will initialize those params to defaults.
+        Constructor for an RNN Model.
         """
         self.settings = settings.Settings()
-        self.logger = setup.setup_logger(self.settings.logging, self.settings.general.model_name)
+        self.model_path = saver.create_model_dir(self.settings.general.model_name)
+        self.logger = setup.setup_logger(self.settings.logging, self.model_path)
         self.logger.info("RNN settings: %s" % self.settings)
         self._create_graph()
     # End of __init__()
@@ -197,7 +194,6 @@ class RNNModel(object):
         """
         Creates the variables needed to save the model weights and tensorboard summaries.
         """
-        self.model_path = saver.create_model_dir(self.settings.general.model_name)
         self.run_dir = saver.load_meta(self.model_path)
         self.summary_writer, self.summary_ops = tensorboard.init_tensorboard(self)
         self.variables = ray.experimental.TensorFlowVariables(self.total_loss_fun, self.session)

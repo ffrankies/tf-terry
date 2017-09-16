@@ -25,8 +25,7 @@ from utils.generator import generate_output
 from utils import saver
 
 if __name__ == "__main__":
-    settings = setup.parse_arguments()
-    rnn = RNNModel(settings)
+    rnn = RNNModel()
     train(rnn)
     generate_output(rnn)
     saver.save_model(rnn)
