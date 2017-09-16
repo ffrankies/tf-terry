@@ -1,0 +1,27 @@
+---
+# general:
+#   model_name:
+logging: 
+  log_dir:
+  log_filename: datasets.log
+  log_name:
+# rnn:
+#   dataset:
+#   hidden_size: 
+#   embed_size:
+# train:
+#   epochs:
+#   patience:
+#   learn_rate:
+#   anneal:
+#   truncate:
+#   batch_size:
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: test.pkl
+  vocab_size: 200
+  num_rows: 200
+  num_examples: 200
+  mode: sentences
+  token_level: words
