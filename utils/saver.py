@@ -15,25 +15,17 @@ from .constants import MODEL_DIR
 from . import constants
 from . import setup
 
-def create_model_dir(model_settings, creation_timestamp):
+def create_model_dir(model_name):
     """
     Creates the directory in which to save the model.
 
-    :type model_settings: Namespace()
-    :param model_settings: the model's settings.
+    Params:
+    model_name (string): The name of the model (gets set to a timestamp if a name is not given)
 
-    :type creation_timestamp: String
-    :param creation_timestamp: the timestamp at which the model was created. Used to create the model directory if
-                               a model name was not provided.
-
-    :type return: String
-    :param return: the path to the created directory
+    Return:
+    string: The path to the created directory
     """
-    model_name = model_settings.model_name
-    if model_name is None:
-        model_path = MODEL_DIR + creation_timestamp + "/"
-    else:
-        model_path = MODEL_DIR + model_name + "/"
+    model_path = MODEL_DIR + model_name + "/"
     setup.create_dir(model_path)
     return model_path
 # End of create_model_dir()

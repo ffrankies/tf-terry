@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 9 September, 2017
+Date: 15 September, 2017
 """
 
 import numpy as np
@@ -17,13 +17,14 @@ from . import setup
 from . import datasets
 from . import saver
 from . import tensorboard
+from . import settings
 
 class RNNModel(object):
     """
     A basic RNN implementation in tensorflow.
     """
 
-    def __init__(self, args=None, saved_model_path=None):
+    def __init__(self, args=None):
         """
         Constructor for an RNN.
 
@@ -31,9 +32,8 @@ class RNNModel(object):
         :param args: The namespace of the command-line arguments passed into the class, or their default values. If
                      not provided, the RNN will initialize those params to defaults.
         """
-        self.settings = setup.parse_arguments() if args is None else args
-        self.creation_timestamp = time.strftime("%d%m%y%H")
-        self.logger = setup.setup_logger(self.settings, self.creation_timestamp)
+        self.settings = settings.Settings()
+        self.logger = setup.setup_logger(self.settings.logging, self.settings.general.model_name)
         self.logger.info("RNN settings: %s" % self.settings)
         self._create_graph()
     # End of __init__()
@@ -55,7 +55,7 @@ class RNNModel(object):
         """
         Loads the dataset specified in the command-line arguments. Instantiates variables for the class.
         """
-        dataset_params = datasets.load_dataset(self.logger, self.settings)
+        dataset_params = datasets.load_dataset(self.logger, self.settings.rnn.dataset)
         # Don't need to keep the actual training data when creating batches.
         self.vocabulary, self.index_to_word, self.word_to_index, x_train, y_train = dataset_params
         self.index_to_word = dataset_params[1]
@@ -69,7 +69,7 @@ class RNNModel(object):
     def _create_long_array(self, matrix):
         array = np.array([])
         for row in matrix: array = np.append(array, row)
-        while len(array) % self.settings.batch_size != 0: array = np.append(array, [array[-1]])
+        while len(array) % self.settings.train.batch_size != 0: array = np.append(array, [array[-1]])
         return array
     # End of _create_long_array()
 
@@ -81,8 +81,8 @@ class RNNModel(object):
         fill it up with placeholders so the sizes are standardized, and then break it up into batches.
         """
         self.logger.info("Breaking input data into batches.")
-        self.x_train_batches = x_train.reshape((self.settings.batch_size,-1))
-        self.y_train_batches = y_train.reshape((self.settings.batch_size,-1))
+        self.x_train_batches = x_train.reshape((self.settings.train.batch_size,-1))
+        self.y_train_batches = y_train.reshape((self.settings.train.batch_size,-1))
         self.num_batches = len(self.x_train_batches)
         self.logger.info("Obtained %d batches." % self.num_batches)
     # End of _create_batches() 
@@ -94,7 +94,7 @@ class RNNModel(object):
         logits_series = self._output_layer()
         with tf.variable_scope(constants.TRAINING):
             self.learning_rate = tf.Variable(
-                initial_value=self.settings.learn_rate,
+                initial_value=self.settings.train.learn_rate,
                 dtype=tf.float32,
                 name="learning_rate")
             outputs_series = tf.unstack(
@@ -138,7 +138,7 @@ class RNNModel(object):
                 shape=np.shape(self.batch_x_placeholder),
                 name="output_placeholder")
             self.out_weights = tf.Variable(
-                initial_value=np.random.rand(self.settings.hidden_size, self.vocabulary_size), 
+                initial_value=np.random.rand(self.settings.rnn.hidden_size, self.vocabulary_size), 
                 dtype=tf.float32,
                 name="out_weights")
             self.out_bias = tf.Variable(
@@ -161,9 +161,9 @@ class RNNModel(object):
         with tf.variable_scope(constants.HIDDEN):
             self.hidden_state_placeholder = tf.placeholder(
                 dtype=tf.float32, 
-                shape=[self.settings.batch_size, self.settings.hidden_size],
+                shape=[self.settings.train.batch_size, self.settings.rnn.hidden_size],
                 name="hidden_state_placeholder")
-            cell = tf.contrib.rnn.GRUCell(self.settings.hidden_size, reuse=tf.get_variable_scope().reuse)
+            cell = tf.contrib.rnn.GRUCell(self.settings.rnn.hidden_size, reuse=tf.get_variable_scope().reuse)
             states_series, self.current_state = tf.contrib.rnn.static_rnn(
                 cell=cell, 
                 inputs=inputs_series, 
@@ -178,11 +178,11 @@ class RNNModel(object):
         with tf.variable_scope(constants.EMBEDDING):
             self.batch_x_placeholder = tf.placeholder(
                 dtype=tf.int32, 
-                shape=[self.settings.batch_size, self.settings.truncate],
+                shape=[self.settings.train.batch_size, self.settings.train.truncate],
                 name="input_placeholder")
             embeddings = tf.get_variable(
                 name="word_embeddings",
-                shape=[self.vocabulary_size, self.settings.hidden_size],
+                shape=[self.vocabulary_size, self.settings.rnn.hidden_size],
                 dtype=tf.float32)
             inputs = tf.nn.embedding_lookup(
                 params=embeddings, ids=self.batch_x_placeholder,
@@ -197,7 +197,7 @@ class RNNModel(object):
         """
         Creates the variables needed to save the model weights and tensorboard summaries.
         """
-        self.model_path = saver.create_model_dir(self.settings, self.creation_timestamp)
+        self.model_path = saver.create_model_dir(self.settings.general.model_name)
         self.run_dir = saver.load_meta(self.model_path)
         self.summary_writer, self.summary_ops = tensorboard.init_tensorboard(self)
         self.variables = ray.experimental.TensorFlowVariables(self.total_loss_fun, self.session)
