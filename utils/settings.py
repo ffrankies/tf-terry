@@ -48,6 +48,22 @@ class Settings(object):
         self.data = SettingsNamespace(config_dicts[4])
     # End of __init__()
 
+    def __str__(self):
+        """
+        Creates a string representation of the Settings object.
+
+        Return:
+        string: A string representation of the Namespaces comprising this Settings object.
+        """
+        settings_dicts = {
+            'general' : vars(self.general),
+            'logging' : vars(self.logging),
+            'rnn' : vars(self.rnn),
+            'train' : vars(self.train),
+            'data' : vars(self.data) }
+        return str(settings_dicts)
+    # End of __str__()
+
     def get_config_dicts(self):
         """
         Obtains the configuration dictionaries from either the config file or the command-line arguments.
