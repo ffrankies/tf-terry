@@ -51,8 +51,8 @@ import logging
 import logging.handlers
 import argparse
 import time
-from . import setup
 from . import constants
+from . import setup
 
 def preprocess_data(logger, data_array):
     """

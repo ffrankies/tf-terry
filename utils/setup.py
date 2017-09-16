@@ -29,13 +29,12 @@ def parse_arguments():
     arg_parse = argparse.ArgumentParser()
     subparsers = arg_parse.add_subparsers(help="Sub-command help.")
     config_parser = subparsers.add_parser("config", help="Pick a config file for setting up the network.")
-    config_parser.add_argument("config_name", default="config.yml",
-                               help="The name of the config file holding network settings.")
-    _add_options_parser(subparsers)
+    config_parser.add_argument("config_file", help="The name of the config file holding network settings.")
+    add_options_parser(subparsers)
     return arg_parse.parse_args()
 # End of parse_arguments()
 
-def _add_options_parser(subparsers):
+def add_options_parser(subparsers):
     """
     Adds network settings as command_line arguments.
 
@@ -46,13 +45,27 @@ def _add_options_parser(subparsers):
     :param return: The Namespace object containing the values of all supported command-line arguments.
     """
     options_parser = subparsers.add_parser("options", help="Provide network arguments as command arguments.")
-    _add_log_arguments(options_parser)
-    _add_rnn_arguments(options_parser)
-    _add_train_arguments(options_parser)
-    _add_dataset_arguments(options_parser)
-# End of _add_options_parser()
+    add_general_arguments(options_parser)
+    add_log_arguments(options_parser)
+    add_rnn_arguments(options_parser)
+    add_train_arguments(options_parser)
+    add_dataset_arguments(options_parser)
+# End of add_options_parser()
 
-def _add_log_arguments(parser):
+def add_general_arguments(parser):
+    """
+    Adds general model arguments to the given argument parser.
+    Arguments added:
+    --model_name
+
+    :type parser: argparse.ArgumentParser
+    :param parser: The argument parser to which to add the logger arguments.
+    """
+    parser.add_argument("-m", "--model_name", default=constants.MODEL_NAME,
+                        help="The previously trained model to load on init.")
+# End of add_general_arguments()
+
+def add_log_arguments(parser):
     """
     Adds arguments for setting up the logger to the given argument parser.
     Arguments added:
@@ -65,13 +78,13 @@ def _add_log_arguments(parser):
     """
     parser.add_argument("-ln", "--log_name", default=constants.LOG_NAME,
                         help="The name of the logger to be used. Defaults to %s" % constants.LOG_NAME)
-    parser.add_argument("-lf", "--log_filename", default="terry.log",
+    parser.add_argument("-lf", "--log_filename", default=constants.LOG_FILENAME,
                         help="The name of the file to which the logging will be done.")
-    parser.add_argument("-ld", "--log_dir", default="./logging/",
+    parser.add_argument("-ld", "--log_dir", default=constants.LOG_DIR,
                         help="The path to the directory where the log file will be stored.")
-# End of _add_log_arguments()
+# End of add_log_arguments()
 
-def _add_rnn_arguments(parser):
+def add_rnn_arguments(parser):
     """
     Adds arguments for setting up an RNN to the given argument parser.
     Arguments added:
@@ -83,22 +96,19 @@ def _add_rnn_arguments(parser):
     :type parser: argparse.ArgumentParser
     :param parser: The argument parser to which to add the logger arguments.
     """
-    parser.add_argument("-d", "--dataset", default="./datasets/stories.pkl",
+    parser.add_argument("-d", "--dataset", default=constants.DATASET,
                         help="The path to the dataset to be used for training.")
-    parser.add_argument("-hs", "--hidden_size", type=int, default=100,
+    parser.add_argument("-hs", "--hidden_size", type=int, default=constants.HIDDEN_SIZE,
                         help="The size of the hidden layers in the RNN.")
-    parser.add_argument("-es", "--embed_size", type=int, default=100,
+    parser.add_argument("-es", "--embed_size", type=int, default=constants.EMBED_SIZE,
                         help="The size of the embedding layer in the RNN.")
-    parser.add_argument("-m", "--model_name", default=None,
-                        help="The previously trained model to load on init.")
-# End of _add_rnn_arguments()
+# End of add_rnn_arguments()
 
-def _add_train_arguments(parser):
+def add_train_arguments(parser):
     """
     Adds arguments for training an RNN to the given argument parser.
     Arguments added:
     --epochs
-    --max
     --patience
     --test
     --learning_rate
@@ -109,43 +119,38 @@ def _add_train_arguments(parser):
     :type parser: argparse.ArgumentParser
     :param parser: The argument parser to which to add the logger arguments.
     """
-    parser.add_argument("-e", "--epochs", default=10, type=int,
+    parser.add_argument("-e", "--epochs", default=constants.EPOCHS, type=int,
                         help="The number of epochs for which to train the RNN.")
-    parser.add_argument("-max", "--max", default=None, type=int,
-                        help="The maximum number of examples to train on.")
-    parser.add_argument("-p", "--patience", default=100000, type=int,
+    parser.add_argument("-p", "--patience", default=constants.PATIENCE, type=int,
                         help="The number of examples to train before evaluating loss.")
-    parser.add_argument("-test", "--test", action="store_true",
-                        help="Treat run as test, do not save models")
-    parser.add_argument("-l", "--learn_rate", default=0.005, type=float,
+    parser.add_argument("-l", "--learn_rate", default=constants.LEARN_RATE, type=float,
                         help="The learning rate to be used in training.")
-    parser.add_argument("-a", "--anneal", type=float, default=0.00001,
+    parser.add_argument("-a", "--anneal", type=float, default=constants.ANNEAL,
                         help="The minimum possible learning rate.")
-    parser.add_argument("-t", "--truncate", type=int, default=10,
+    parser.add_argument("-t", "--truncate", type=int, default=constants.TRUNCATE,
                         help="The backpropagate truncate value.")
-    parser.add_argument("-b", "--batch_size", type=int, default=5,
+    parser.add_argument("-b", "--batch_size", type=int, default=constants.BATCH_SIZE,
                         help="The size of the batches into which to split the training data.")
-# End of _add_train_arguments()
+# End of add_train_arguments()
 
-def _add_dataset_arguments(parser):
+def add_dataset_arguments(parser):
     """
     Adds arguments for training an RNN to the given argument parser.
     Arguments added:
     --raw_data_path
-    --saved_dataset_path
     --saved_dataset_name
     --source_type
 
     :type parser: argparse.ArgumentParser
     :param parser: The argument parser to which to add the logger arguments.
     """
-    parser.add_argument("-rd", "--raw_data", default="stories.csv",
+    parser.add_argument("-rd", "--raw_data", default=constants.RAW_DATA,
                         help="The name of the file containing raw (unprocessed) data.")
-    parser.add_argument("-ds", "--dataset_name", default="test.pkl",
+    parser.add_argument("-ds", "--dataset_name", default=constants.DATASET_NAME,
                         help="The name of the saved dataset.")
-    parser.add_argument("-st", "--source_type", default="csv",
-                        help="The type of source data [currently only the csv data size is supported].")
-# End of _add_dataset_arguments()
+    parser.add_argument("-st", "--source_type", default=constants.SOURCE_TYPE,
+                        help="The type of source data [currently only the csv data type is supported].")
+# End of add_dataset_arguments()
 
 def create_dir(dirPath):
     """

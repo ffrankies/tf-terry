@@ -3,7 +3,7 @@ An RNN model implementation in tensorflow.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 9 September, 2017
+Date: 15 September, 2017
 """
 
 import numpy as np
@@ -17,13 +17,14 @@ from . import setup
 from . import datasets
 from . import saver
 from . import tensorboard
+from . import settings
 
 class RNNModel(object):
     """
     A basic RNN implementation in tensorflow.
     """
 
-    def __init__(self, args=None, saved_model_path=None):
+    def __init__(self, args=None):
         """
         Constructor for an RNN.
 
@@ -31,7 +32,7 @@ class RNNModel(object):
         :param args: The namespace of the command-line arguments passed into the class, or their default values. If
                      not provided, the RNN will initialize those params to defaults.
         """
-        self.settings = setup.parse_arguments() if args is None else args
+        self.settings = settings.Settings()
         self.creation_timestamp = time.strftime("%d%m%y%H")
         self.logger = setup.setup_logger(self.settings, self.creation_timestamp)
         self.logger.info("RNN settings: %s" % self.settings)
