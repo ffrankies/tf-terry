@@ -1,9 +1,9 @@
 """
-A Python 3 collection of Namespaces for the different model settings.
+A Python3 collection of Namespaces for the different model settings.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 15 September, 2017
+Date: 16 September, 2017
 """
 
 import yaml
@@ -147,14 +147,15 @@ class Settings(object):
         dict: The user_dict with None values replaced with defaults
         """
         changed_dict = dict()
-        for key, value in user_dict.items():
-            if value is None:
-                changed_dict[key] = default_dict[key]
-            else:
-                changed_dict[key] = value
-        for key, value in default_dict.items():
-            if key not in changed_dict.keys():
-                changed_dict[key] = value
+        if user_dict is not None:
+            for key, value in user_dict.items():
+                if value is None:
+                    changed_dict[key] = default_dict[key]
+                else:
+                    changed_dict[key] = value
+            for key, value in default_dict.items():
+                if key not in changed_dict.keys():
+                    changed_dict[key] = value
         return changed_dict
     # End of set_default_values()
 
@@ -191,7 +192,7 @@ class Settings(object):
         arg_dict = vars(args)
         new_dict = dict()
         for arg_key in arg_keys:
-            new_dict[arg_key] = arg_dict[arg_key]
+            new_dict[arg_key] = arg_dict.get(arg_key)
         return new_dict
     # End of get_arg_subset
 # End of Settings
