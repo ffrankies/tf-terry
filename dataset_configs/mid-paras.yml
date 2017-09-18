@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: MID_PARAS
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: mid-paras.pkl
+  vocab_size: 2000
+  num_rows: 2000
+  num_examples: 10000
+  mode: paragraphs
+  token_level: words

@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: LARGE_PARAS
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: large-paras.pkl
+  vocab_size: 8000
+  num_rows: 
+  num_examples: 
+  mode: paragraphs
+  token_level: words

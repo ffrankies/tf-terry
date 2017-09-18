@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: LARGE_PARAS_CHAR
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: large-paras-c.pkl
+  vocab_size: 8000
+  num_rows: 7936 # Keeps generated dataset <100MB so it can be hosted on GitHub
+  num_examples: 
+  mode: paragraphs
+  token_level: characters

@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: SMALL_SENTS
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: small-sents.pkl
+  vocab_size: 500
+  num_rows: 500
+  num_examples: 1000
+  mode: sentences
+  token_level: words

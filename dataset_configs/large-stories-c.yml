@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: LARGE_STORIES_CHAR
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: large-stories-c.pkl
+  vocab_size: 8000
+  num_rows: 7200 # Keeps the dataste < 100MB so it can be hosted on GitHub
+  num_examples: 
+  mode: stories
+  token_level: characters

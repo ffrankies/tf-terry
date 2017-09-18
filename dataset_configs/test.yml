@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: DATASET
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: test.pkl
+  vocab_size: 200
+  num_rows: 200
+  num_examples: 200
+  mode: sentences
+  token_level: words
