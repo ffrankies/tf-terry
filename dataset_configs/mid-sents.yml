@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: MID_SENTS
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: mid-sents.pkl
+  vocab_size: 2000
+  num_rows: 2000
+  num_examples: 10000
+  mode: sentences
+  token_level: words

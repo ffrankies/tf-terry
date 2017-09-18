@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: LARGE_STORIES
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: large-stories.pkl
+  vocab_size: 8000
+  num_rows: 
+  num_examples: 
+  mode: stories
+  token_level: words

@@ -1,0 +1,14 @@
+---
+logging: 
+  log_dir: dataset_log/
+  log_filename: datasets.log
+  log_name: MID_STORIES_CHAR
+data:
+  source_type: csv
+  raw_data: stories.csv
+  dataset_name: mid-stories-c.pkl
+  vocab_size: 2000
+  num_rows: 2000
+  num_examples: 10000
+  mode: stories
+  token_level: characters

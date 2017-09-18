@@ -17,12 +17,12 @@ Date: 17 July, 2017
 # A simple RNN based on https://www.tensorflow.org/tutorials/recurrent
 ########################################################################################
 import tensorflow as tf
-from utils import setup
-from utils.model import RNNModel
-from utils import datasets
-from utils.trainer import train
-from utils.generator import generate_output
-from utils import saver
+from tensorflow_rnn import setup
+from tensorflow_rnn.model import RNNModel
+from tensorflow_rnn import datasets
+from tensorflow_rnn.trainer import train
+from tensorflow_rnn.generator import generate_output
+from tensorflow_rnn import saver
 
 if __name__ == "__main__":
     rnn = RNNModel()

@@ -264,10 +264,7 @@ def normalize_examples(logger, settings, examples):
     """
     examples = preprocess_data(logger, examples)
     examples = examples[:settings.num_examples]
-    logger.info("Adding start and end tokens to examples.")
-    examples = ["%s %s %s" % (constants.START_TOKEN, example, constants.END_TOKEN) for example in examples]
-    logger.info("Tokenizing words in examples.")
-    examples = [nltk.word_tokenize(example) for example in examples]
+    examples = low_level_tokenize(logger, settings, examples)
     return list(examples)
 # End of normalize_examples()
 
@@ -298,6 +295,30 @@ def preprocess_data(logger, data_array):
     logger.info("Skipped %d items in data." % num_skipped)
     return preprocessed_data
 # End of preprocess_data()
+
+def low_level_tokenize(logger, settings, examples):
+    """
+    Tokenizes examples into either words or letters.
+
+    Params:
+    logger (logging.Logger): The logger used in this run of the script
+    settings (settings.SettingsNamespace): The dataset creation settings
+    examples (list): Examples to be tokenized
+
+    Return:
+    list: The tokenized examples
+    """
+    logger.info("Adding start and end tokens to examples.")
+    if settings.token_level == constants.TOKEN_LEVEL_CHOICES[0]: # Words
+        examples = ["%s %s %s" % (constants.START_TOKEN, example, constants.END_TOKEN) for example in examples]
+        logger.info("Tokenizing words in examples.")
+        examples = [nltk.word_tokenize(example.lower()) for example in examples]
+    else:
+        examples = ["%s%s%s" % (constants.START_TOKEN, example, constants.END_TOKEN) for example in examples]
+        logger.info("Tokenizes characters in examples.")
+        examples = [list(example) for example in examples]
+    return examples
+# End of low_level_tokenize()
 
 def create_vocabulary(logger, settings, data):
     """
