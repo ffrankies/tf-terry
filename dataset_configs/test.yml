@@ -10,5 +10,6 @@ data:
   vocab_size: 200
   num_rows: 200
   num_examples: 200
+  type: text
   mode: sentences
   token_level: words

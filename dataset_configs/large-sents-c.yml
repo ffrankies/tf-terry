@@ -10,5 +10,6 @@ data:
   vocab_size: 8000
   num_rows: 7400 # Keeps dataset < 100MB so it can be hosted on GitHub
   num_examples: 
+  type: text
   mode: sentences
   token_level: characters

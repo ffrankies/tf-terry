@@ -10,5 +10,6 @@ data:
   vocab_size: 2000
   num_rows: 2000
   num_examples: 10000
+  type: text
   mode: paragraphs
   token_level: words

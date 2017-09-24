@@ -10,5 +10,6 @@ data:
   vocab_size: 500
   num_rows: 500
   num_examples: 1000
+  type: text
   mode: stories
   token_level: words
