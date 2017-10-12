@@ -27,7 +27,7 @@ from tensorflow_rnn import saver
 if __name__ == "__main__":
     rnn = RNNModel()
     train(rnn)
-    generate_output(rnn)
+    #    generate_output(rnn)
     saver.save_model(rnn)
     rnn.session.close()
 
