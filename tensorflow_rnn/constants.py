@@ -3,7 +3,7 @@ Contains constants for use within the project.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 23 September, 2017
+Date: 8 October, 2017
 """
 
 import time
@@ -36,9 +36,12 @@ RAW_DATA_DIR = "raw_data/"
 #########################################
 # VARIABLE SCOPES FOR TENSORBOARD
 #########################################
-EMBEDDING = "embedding_layer"
+INPUT = "input_layer"
 HIDDEN = "hidden_layers"
 OUTPUT = "output_layer"
+PERFORMANCE = "performance_evaluation"
+LOSS_CALC = "loss_calculation"
+ACCURACY = "accuracy_calculation"
 TRAINING = "network_training"
 
 #########################################

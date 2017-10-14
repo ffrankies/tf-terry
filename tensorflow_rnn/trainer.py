@@ -3,7 +3,7 @@ Tensorflow implementation of a training method to train a given model.
 
 Copyright (c) 2017 Frank Derry Wanye
 
-Date: 9 September, 2017
+Date: 30 September, 2017
 """
 
 import numpy as np
@@ -31,7 +31,6 @@ def train(model):
     current_state = np.zeros((model.settings.train.batch_size, model.settings.rnn.hidden_size), dtype=float)
     for epoch_num in range(1, model.settings.train.epochs + 1):
         average_loss, current_state = train_epoch(model, epoch_num, current_state)
-        model.latest_state = current_state
         loss_list.append(average_loss)
         # End of epoch training
 
@@ -81,17 +80,19 @@ def train_minibatch(model, batch_num, current_state):
     Return:
     tuple: (minibatch_loss, updated_hidden_state)
     """
-    start_index = batch_num * model.settings.train.truncate
-    end_index = start_index + model.settings.train.truncate
+    batch_x = model.inputs[batch_num]
+    batch_y = model.labels[batch_num]
+    sizes = model.sizes[batch_num]
 
-    batch_x = model.x_train_batches[:, start_index:end_index]
-    batch_y = model.y_train_batches[:, start_index:end_index]
+    if batch_x[0][0] == model.token_to_index[constants.START_TOKEN]: # Reset state if start of sentence
+        current_state = np.zeros((model.settings.train.batch_size, model.settings.rnn.hidden_size), dtype=float)
     
     total_loss, train_step, current_state, summary = model.session.run(
-        [model.total_loss_fun, model.train_step_fun, model.current_state, model.summary_ops],
+        [model.total_loss_op, model.train_step_fun, model.current_state, model.summary_ops],
         feed_dict={
             model.batch_x_placeholder:batch_x, 
             model.batch_y_placeholder:batch_y, 
+            model.batch_sizes:sizes,
             model.hidden_state_placeholder:current_state
         })
 
